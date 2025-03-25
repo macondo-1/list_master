@@ -313,6 +313,7 @@ class list_:
                     if extension == 'xlsx':
                         os.remove(read_path)
 
+                    out_name = out_name.replace(' ','_')
                     out_name += '.csv'
                     df.to_csv(out_name, index=False)
                 except:
