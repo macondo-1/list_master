@@ -532,7 +532,7 @@ def import_list():
             to_blast_df.to_csv(to_blast_path, index=False)
 
 
-def send_campaigns_testing(campaign_speed):
+def send_campaigns_testing(campaign_speed, not_sent_in=30):
     today = date.today()
     d1 = today.strftime("%Y%m%d")
     suffix = str('_' + d1)
@@ -597,7 +597,7 @@ def send_campaigns_testing(campaign_speed):
                 time.sleep(3)
                 bot.edit_segment()
                 bot.add_criteria()
-                bot.not_sent_in(30)
+                bot.not_sent_in(not_sent_in)
                 #bot.click_save_segment_button()
                 bot.edit_delivery()
                 bot.set_speed(campaign_speed)
