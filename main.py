@@ -65,7 +65,11 @@ if __name__ == '__main__':
 
         elif choice == '4':
             campaign_speed = int(input('select campaigns speed: '))
-            send_campaigns_testing(campaign_speed)
+            not_sent_in = input('Last sent: ')
+            if not_sent_in == '':
+                not_sent_in = 30
+            not_sent_in = int(not_sent_in)
+            send_campaigns_testing(campaign_speed, not_sent_in)
 
         elif choice == '5': # extract blast needs from valid emails database
             # Get dictionary from blast needs sheet
