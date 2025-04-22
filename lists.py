@@ -116,6 +116,7 @@ class list_:
             apollo_columns_1 = pd.Series(const.APOLLO_MAPPER_1.keys())
             hunter_columns = pd.Series(const.HUNT_MAPPER.keys())
             hunter_columns_1 = pd.Series(const.HUNT_MAPPER_1.keys())
+            snov_columns = pd.Series(const.SNOV_MAPPER.keys())
 
             if ru_columns.isin(columns).all():
                 df = df.rename(columns = const.RU_MAPPER)
@@ -136,6 +137,10 @@ class list_:
             elif hunter_columns_1.isin(columns).all():
                 df = df.rename(columns = const.HUNT_MAPPER_1)
                 df = df[const.HUNT_MAPPER_1.values()]
+
+            elif snov_columns.isin(columns).all():
+                df = df.rename(columns = const.SNOV_MAPPER)
+                df = df[const.SNOV_MAPPER.values()]
 
             else:
                 df = list_.clean_list_manually(df)
@@ -239,7 +244,7 @@ class list_:
                 df[first_name_col] = df[first_name_col].apply(lambda x: x.capitalize())
                 df[email_col] = df[email_col].apply(lambda x: x.lower())
                 df = df.dropna(subset=email_col)
-                df = df.replace(np.NaN,'Colleague')
+                df = df.replace(np.nan,'Colleague')
                 df= df.rename(columns={first_name_col:'first_name',
                                     email_col:'email'
                                     })
@@ -253,8 +258,9 @@ class list_:
                     
 
                 df.to_csv(file_name, index = False)
-            except:
+            except Exception as e:
                  failed_files.append(file_name)
+                 print('exception: ', e)
             finally:
                 print('failed files:')
                 print(failed_files)
