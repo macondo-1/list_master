@@ -515,6 +515,33 @@ class list_:
     def DNSCheck():
         pass
 
+    def divide_list():
+        """Reads a csv and divides it into the desired chunks"""
+        
+        chunks = int(input("Divide into how many csv's?: "))
+        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
+        all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
+
+        for read_path in all_read_paths:
+            df = pd.read_csv(read_path)
+            total_lenght = len(df)
+            lenght_per_chunk = int(total_lenght/chunks)
+            initial_chunk = 0
+            final_chunk = lenght_per_chunk
+            chunk_number = 0
+
+            while total_lenght > 0:
+                file_name = const.PROCESSING_FOLDER + '_' + str(chunk_number) + '.csv'
+                if int(chunk_number+1) == int(chunks):
+                    df[initial_chunk:].to_csv(file_name, index=False)
+                    total_lenght = 0
+                else:
+                    df[initial_chunk:final_chunk].to_csv(file_name, index=False)
+                    total_lenght -= lenght_per_chunk
+                initial_chunk += lenght_per_chunk
+                final_chunk += lenght_per_chunk
+                chunk_number += 1
+
 class NewList:
     def __init__(self, file_path):
         try:
@@ -546,3 +573,5 @@ class NewList:
         except:
             error_message = 'failed reading file {0}\n'.format(self.file_path)
             print(error_message)
+
+
