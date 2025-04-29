@@ -53,6 +53,8 @@ class Display:
 
     [19] Deduper
 
+    [22] Divide list
+
     [Q] Quit
     """
         
