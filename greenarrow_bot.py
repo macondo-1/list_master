@@ -49,6 +49,8 @@ class Hetz_ga(webdriver.Chrome):
         self.get(new_list_page_url)
 
 
+
+
     def setup_list_name(self,List_name):
         list_name = self.find_element('id','mailing_list_name')
         List_name = List_name.split('.')[0]
@@ -463,6 +465,25 @@ class Hetz_ga(webdriver.Chrome):
             #wait_for_page_load(driver)  # Wait for page load completion
             WebDriverWait(self, 10).until(lambda d: d.execute_script("return document.readyState") == "complete")
 
+    def land_query_lists_page(self, keyword):
+        """Looks up a keyword in the GreenArrow list names"""
+        query_url = 'https://aws-new.sisfocusgroups.com/ga/mailing_lists/?utf8=%E2%9C%93&q_name={0}&button='.format(keyword)
+        self.get(query_url)
+
+    def get_list_names_from_query(self):
+        
+        table = self.find_element(By.CSS_SELECTOR, '.data-table')
+        rows = table.find_elements(By.TAG_NAME, 'tr')
+        list_names = []
+
+        for row in rows[1:]:
+            columns = row.find_elements(By.TAG_NAME, 'td')
+            list_names.append(columns[0].text)
+
+        return list_names
+
+
+
 
 
 
@@ -504,24 +525,42 @@ def import_list():
                 List_name_2 = List_name_2.split('_', 1)[1]
                 Credentials = bot.read_server_credentials(Server)
                 bot.land_login_page(Credentials['login_page'])
+                time.sleep(0.5)
                 bot.sign_in(Credentials['username'],Credentials['password'])
+                time.sleep(0.5)
                 bot.land_new_list_page(Credentials['new_list_page'])
+                time.sleep(0.5)
                 bot.setup_list_name(List_name_2)
+                time.sleep(0.5)
                 bot.setup_sending_speed()
+                time.sleep(0.5)
                 bot.setup_from_name()
+                time.sleep(0.5)
                 bot.setup_from_email(Credentials['from_email'])
+                time.sleep(0.5)
                 bot.setup_virtual_mta()
+                time.sleep(0.5)
                 bot.setup_url_domain(Credentials['url_domain'])
+                time.sleep(0.5)
                 bot.setup_bounce_email(Credentials['bounce_email'])
-                print(Credentials['bounce_email'])
+                time.sleep(0.5)
                 bot.create_list()
+                time.sleep(0.5)
                 bot.land_import_page()
+                time.sleep(0.5)
                 bot.dont_update_suscribers()
+                time.sleep(0.5)
                 bot.set_char_set()
+                time.sleep(5)
+                print('{0}/{1}'.format(folder,file_name))
                 bot.select_upload_file('{0}/{1}'.format(folder,file_name))
+                time.sleep(5)
                 bot.continue_import()
+                time.sleep(0.5)
                 bot.continue_import()
+                time.sleep(0.5)
                 bot.schedule_import()
+                time.sleep(0.5)
                 to_blast_df.loc[len(to_blast_df.index)] = file_name
                 os.remove(file_name)
                 time.sleep(5)
@@ -549,9 +588,13 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
                 Template_name = project_info['template_name']
                 Credentials = bot.read_server_credentials(Server)
                 bot.land_login_page(Credentials['login_page'])
+                time.sleep(0.5)
                 bot.sign_in(Credentials['username'],Credentials['password'])
+                time.sleep(2)
                 bot.land_campaigns_page(Credentials['campaigns_page_url'])
+                time.sleep(2)
                 campaign_names_list = bot.get_active_campaigns_names()
+                time.sleep(0.5)
                 Campaign_name = Template_name + suffix
 
                 # This is awful programming, solve it better
@@ -589,30 +632,52 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
                 List_name_2 = List_name_2.split(' ')[0] #new
                 
                 bot.land_template_pages(Credentials['template_page'])
+                time.sleep(0.5)
                 bot.select_template(Template_name)
+                time.sleep(0.5)
                 bot.create_campaign()
+                time.sleep(0.5)
                 bot.name_campaign(Campaign_name)
+                time.sleep(0.5)
                 bot.select_mailing_list(List_name_2)
+                time.sleep(0.5)
                 bot.create_campaign_1()
                 time.sleep(3)
                 bot.edit_segment()
+                time.sleep(0.5)
                 bot.add_criteria()
+                time.sleep(0.5)
                 bot.not_sent_in(not_sent_in)
                 #bot.click_save_segment_button()
+                time.sleep(0.5)
                 bot.edit_delivery()
+                time.sleep(0.5)
                 bot.set_speed(campaign_speed)
+                time.sleep(0.5)
                 bot.set_from_name()
+                time.sleep(0.5)
                 bot.set_from_email(Credentials['from_email'])
+                time.sleep(0.5)
                 bot.set_virtual_mta(Credentials['virtual_mta'])
+                time.sleep(0.5)
                 bot.set_url_domain(Credentials['url_domain'])
+                time.sleep(0.5)
                 #bot.set_tracking_off()
+                #time.sleep(0.5)
                 bot.set_bounce_email(Credentials['bounce_email'])
+                time.sleep(0.5)
                 bot.update_campaign()
+                time.sleep(0.5)
                 new_url = bot.get_new_url()
+                time.sleep(0.5)
                 bot.get(new_url)
+                time.sleep(0.5)
                 bot.send_campaign()
+                time.sleep(0.5)
                 bot.schedule_campaign()
+                time.sleep(0.5)
                 bot.send_campaign_final()
+                time.sleep(0.5)
                 print('')
                 print(Campaign_name)
                 print('')
@@ -628,3 +693,21 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
 
         to_blast_df = to_blast_df[~to_blast_df['list_name'].isin(sent_lists)]
         to_blast_df.to_csv(to_blast_path, index=False)
+
+
+
+if __name__ == '__main__':
+    with Hetz_ga() as bot:
+        Credentials = bot.read_server_credentials('new_aws_ga')
+        bot.land_login_page(Credentials['login_page'])
+        time.sleep(0.5)
+        bot.sign_in(Credentials['username'],Credentials['password'])
+        time.sleep(0.5)
+        bot.land_query_lists_page('germany')
+        time.sleep(0.5)
+        list_names = bot.get_list_names_from_query()
+
+        project_number = '1431082_'
+        list_names = [project_number + x + '.csv\n' for x in list_names]
+        with open('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/Python/ga_bot_1/to_blast.csv', 'a') as f:
+            f.writelines(list_names)

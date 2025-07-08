@@ -22,6 +22,7 @@ email_passwords_dict = {'nancy@sisinternational.com':'Challenge2025!!',
                         'john@sisinternational.com':'Challenge2025!!',
                         'anna@sisinternational.com':'Challenge2025!!',
                         'charles@sisinternational.com':'Challenge2025!!',
+                        'delores@sisinternational.com':'Challenge2025!!',
                         'sisfieldwork@sisinternational.com':'Challenge2025!!'
                         }
 
