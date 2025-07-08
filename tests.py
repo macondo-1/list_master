@@ -1,21 +1,21 @@
 import sqlite3
 import os
+import pandas as pd
+import glob
 
-os.chdir()
+os.chdir("/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process")
+file_extension = '.csv'
+all_filenames = [i for i in glob.glob(f"*{file_extension}")]
 
-conn = sqlite3.connect("datafile.db")
-cursor = conn.cursor()
+deduper_list_path = '/Users/albertoruizcajiga/python/email_bison_api/test.csv'
 
-"""#cursor.execute("create table data (id integer primary key, name text,email text, validation bool)")
+df_dedupe = pd.read_csv(deduper_list_path, low_memory=False)
+#print(df_dedupe.email)
 
-cursor.execute("insert into data (name, email) values ('alberto', 'alberto@test.com')")
+for filename in all_filenames:
+    #print(filename)
+    df = pd.read_csv(filename)
+    df = df[~df.email.isin(df_dedupe.email)]
 
-conn.commit()
-conn.close()"""
+    df.to_csv(filename, index=False)
 
-#cursor.execute("insert into data (name, email, validation) values ('gabriel', 'gabriel@test.com', TRUE)")
-
-cursor.execute("create table data (id integer primary key, name text,email text, validation bool)")
-#result = cursor.execute("select * from data")
-#print(result.fetchall())
-conn.close()

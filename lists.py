@@ -9,6 +9,10 @@ from datetime import time
 from time import sleep
 import glob
 import numpy as np
+import shutil
+from pathlib import Path
+import datetime
+
 
 class list_:
     """
@@ -42,6 +46,39 @@ class list_:
         except:
             print('failed reading file\n')
     
+    def save_raw_file_to_project_dir(file_path):
+        """
+        Saves the file to the project's directory
+        """
+        try:
+            file_path = Path(file_path)
+            file_name = file_path.stem
+
+            projects_dir_path = Path(const.NEW_PATH_TO_PROJECST_DB)
+
+            df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
+            project_info1 = list_.get_project_info(file_name,df_blast_master)
+            project_path = Path(project_info1['template_name'])
+            x = datetime.datetime.now()
+            x = x.strftime('%Y%m%d')
+            destination_filename = projects_dir_path.joinpath(project_path.stem, 'lists', file_path.stem + '_' + x + file_path.suffix)
+
+            directory_path = projects_dir_path.joinpath(project_path.stem, 'lists')
+            directory_path.mkdir(parents=True, exist_ok=True)
+
+
+            print('destination_filename',destination_filename)
+            print('file_path',file_path)
+
+
+
+            shutil.copy(file_path, destination_filename)
+
+        except Exception as e:
+            print(e)
+
+
+
     def FixRecords(df):
         """
         Replaces None for Colleague on the first_name column and
@@ -306,6 +343,7 @@ class list_:
 
             for read_path in all_read_paths:
                 try:
+                    list_.save_raw_file_to_project_dir(read_path)
                     df = list_.ReadList(read_path)
                     df = list_.FixColumns(df)
                     df = list_.FixRecords(df)
@@ -324,9 +362,10 @@ class list_:
                     out_name = '/'.join(out_name)
                     out_name += '.csv'
                     df.to_csv(out_name, index=False)
-                except:
+                except Exception as e:
                     error_message = 'failed cleaning: {0}'.format(read_path)
                     print(error_message)
+                    print(e)
         except:
             error_message = 'failed cleaning lists'
             print(error_message)
