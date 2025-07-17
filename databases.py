@@ -56,8 +56,7 @@ class SM_Database():
 
 
             elif choice == '2':
-
-                filtered_database.to_csv('/Users/albertoruizcajiga/Documents/final_final/list_master/sm_database/extracted_list.csv', index=False)
+                filtered_database.to_csv('{}/extracted_list.csv'.format(const.SM_DB_DIR_PATH), index=False)
                 return filtered_database
 
             

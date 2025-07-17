@@ -28,14 +28,13 @@ class list_:
         Returns a pandas dataframe of the read file
         """
         try:
-            file_name = file_path.split('.')[0]
-            file_extension = file_path.split('.')[1]
-            print(file_name)
-            print(file_extension)
+            file_path = Path(file_path)
+            #file_name = file_path.split('.')[0]
+            file_extension = file_path.suffix
 
-            if file_extension == 'csv':
+            if file_extension == '.csv':
                 df = pd.read_csv(file_path, on_bad_lines='skip',low_memory=False,encoding='latin-1',dtype=object, header=header_row)
-            elif file_extension in ['xls', 'xlsx']:
+            elif file_extension in ['.xls', '.xlsx']:
                 df = pd.read_excel(file_path,dtype=object, header=header_row)
             else:
                 df = None
@@ -315,7 +314,7 @@ class list_:
         return df
 
 
-    def CleanLists():
+    def CleanLists(save_to_project_dir):
         try:
 
             export = int(input('prepare to export? [0/1]: '))
@@ -343,7 +342,8 @@ class list_:
 
             for read_path in all_read_paths:
                 try:
-                    list_.save_raw_file_to_project_dir(read_path)
+                    if save_to_project_dir == 'y':
+                        list_.save_raw_file_to_project_dir(read_path)
                     df = list_.ReadList(read_path)
                     df = list_.FixColumns(df)
                     df = list_.FixRecords(df)
@@ -408,7 +408,7 @@ class list_:
     
     def CreateMMList():
         try:
-            os.chdir('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/mailing_bot')
+            os.chdir(const.MAILING_PATH)
             FROM_NAME = 'Ruth Stanat'
 
             #reading file names
@@ -535,6 +535,17 @@ class list_:
         df_deduped = df_a[~df_a['email'].isin(df_b['email'])]
         df_deduped.to_csv(const.PROCESSING_FOLDER + '/deduped.csv',index=False)
 
+    def clean_against_email_bison_db():
+        """
+        Deletes records that were uploaded to email bison
+        """
+        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
+        all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
+        email_bison_records_path = const.EMAIL_BISON_RECORDS_PATH
+        email_bison_records_df = pd.read_csv(email_bison_records_path, low_memory=False)
+        for x in all_read_paths:
+            df = pd.read_csv(x)
+            df[~df.email.isin(email_bison_records_df.email)].to_csv(x, index=False)
 
     def UploadToGA():
         pass

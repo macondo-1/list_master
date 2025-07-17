@@ -57,7 +57,8 @@ if __name__ == '__main__':
         choice = cli_display.get_user_choice()
 
         if choice == '1':
-            list_.CleanLists()
+            save_to_project_dir = input('Save list to project dir? [y/n]: ')
+            list_.CleanLists(save_to_project_dir)
             
         elif choice == '2':
             import_list()
@@ -161,6 +162,9 @@ if __name__ == '__main__':
 
         elif choice == '22':
             list_.divide_list()
+
+        elif choice == '23':
+            list_.clean_against_email_bison_db()
             
         elif choice == 'q':
             cli_display.quit()

@@ -88,7 +88,8 @@ class Database:
 
 
             project_list = valid_per_project.rename(columns={'project':'project_number'})
-            project_list.to_csv('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process/{0}.csv'.format(project_id), index=False)
+            dir_out = const.PROCESSING_FOLDER
+            project_list.to_csv('{0}{1}.csv'.format(dir_out, project_id), index=False)
 
         #valid_emails_to_mm = valid_emails_to_mm.rename(columns={'project':'project_number'})
         #valid_emails_to_mm.to_csv('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process/mm_list.csv', index=False)
@@ -106,7 +107,8 @@ class Database:
             valid_per_project = valid_per_project[:exctract_dict[project_id]]
 
             project_list = valid_per_project.rename(columns={'project':'project_number'})
-            project_list.to_csv('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process/{0}.csv'.format(project_id), index=False)
+            dir_out = const.PROCESSING_FOLDER
+            project_list.to_csv('{0}{1}.csv'.format(dir_out, project_id), index=False)
     
     def UpdateTableAfterExtractionValidEmails(self, project_db_df, out_df, conn):
         """
@@ -270,8 +272,8 @@ class Database:
 
                 outgoing_list = outgoing_list[:max_size_list]
                 outgoing_list.loc[outgoing_list['first_name'].isna(), 'first_name'] = 'Colleague'
-                out_path = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/mailing_bot/'
-                outgoing_list.to_csv(f'{out_path}{project}_cleaned.csv', index = False, columns = ['first_name','email'])
+                out_path = const.MAILING_PATH
+                outgoing_list.to_csv(f'{out_path}/{project}_cleaned.csv', index = False, columns = ['first_name','email'])
                 emails_list = list(outgoing_list['email'])
 
                 condition = database_df['email'].isin(emails_list)          
