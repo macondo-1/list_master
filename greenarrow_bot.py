@@ -421,17 +421,15 @@ class Hetz_ga(webdriver.Chrome):
         pending_lists = list(todays_blasts['today_blast'])
         return pending_lists
     
-    def delete_sent_pending_lists(self,pending_list):
-        df = pd.read_excel(const.BLAST_MASTER_PATH)
-        df.set_index('Unnamed: 1', inplace = True)
-        df.rename({'Unnamed: 0':'project_number'}, axis='columns', inplace = True)
+    # MODIFY: This might be useless now
+    # def delete_sent_pending_lists(self,pending_list):
+    #     df = pd.read_excel(const.BLAST_MASTER_PATH)
+    #     df.set_index('Unnamed: 1', inplace = True)
+    #     df.rename({'Unnamed: 0':'project_number'}, axis='columns', inplace = True)
 
-        df.replace(pending_list, None, inplace=True)
+    #     df.replace(pending_list, None, inplace=True)
 
-        df.to_excel('/Users/albertoruizcajiga/Desktop/blast_master_good_final_RENEWED.xlsx')
-
-    #def wait_for_page_load(self):
-     #   WebDriverWait(self, 10).until(lambda d: d.execute_script("return document.readyState") == "complete")
+    #     df.to_excel('/Users/albertoruizcajiga/Desktop/blast_master_good_final_RENEWED.xlsx') 
 
     def pause_all_campaigns(self):
         self.execute_script("document.getElementById('campaigns-in-progress').scrollIntoView();")
@@ -491,9 +489,9 @@ def import_list():
     today = date.today()
     d1 = today.strftime("%Y%m%d")
     suffix = str('_' + d1)
-    folder = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process'
+    folder = const.ACTIVE_TO_PROCESS_PATH
     os.chdir(folder)
-    to_blast_path = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/Python/ga_bot_1/to_blast.csv'
+    to_blast_path = const.TO_BLAST_PATH
     to_blast_df = pd.read_csv(to_blast_path)
 
     file_extension = '.csv'
@@ -575,7 +573,7 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
     today = date.today()
     d1 = today.strftime("%Y%m%d")
     suffix = str('_' + d1)
-    to_blast_path = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/Python/ga_bot_1/to_blast.csv'
+    to_blast_path = const.TO_BLAST_PATH
     to_blast_df = pd.read_csv(to_blast_path)
     # Send out campaigns
     with Hetz_ga() as bot:
@@ -709,5 +707,6 @@ if __name__ == '__main__':
 
         project_number = '1431082_'
         list_names = [project_number + x + '.csv\n' for x in list_names]
-        with open('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/Python/ga_bot_1/to_blast.csv', 'a') as f:
+        filename = const.TO_BLAST_PATH
+        with open(filename, 'a') as f:
             f.writelines(list_names)

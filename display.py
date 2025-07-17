@@ -55,6 +55,8 @@ class Display:
 
     [22] Divide list
 
+    [23] Clean against email bison
+
     [Q] Quit
     """
         

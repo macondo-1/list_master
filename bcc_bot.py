@@ -7,6 +7,7 @@ import datetime
 import glob
 import os
 import numpy as np
+import constants as const
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -26,9 +27,7 @@ email_passwords_dict = {'nancy@sisinternational.com':'Challenge2025!!',
                         'sisfieldwork@sisinternational.com':'Challenge2025!!'
                         }
 
-BLAST_MASTER_PATH = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/SIS final/blast_master_good_final.xlsx'
-
-
+BLAST_MASTER_PATH = const.BLAST_MASTER_PATH
 
 def fixing_df(list_filename, MESSAGE, FROM_NAME, slice_size):
     df = pd.read_csv(list_filename)
@@ -71,7 +70,6 @@ def create_mm_list(FROM_NAME):
     concatenated_df = pd.concat([pd.read_csv(f,low_memory=False) for f in all_filenames])
     concatenated_df = concatenated_df.sort_values(by='Email', ascending=True)
     concatenated_df.to_csv('mm_list.csv', index = False)
-
 
 def start_smtp_connection(SMPT, PORT, EMAIL, PASSWORD):
     mailserver = smtplib.SMTP(SMPT, PORT)
@@ -181,52 +179,17 @@ def fixing_df_bis(list_filename, slice_size):
     mailing_list = df[:slice_size].to_dict('records')
     return mailing_list
 
-"""
-def send_emails_smtp(need_to_fix_list):
-
-    mailserver = start_smtp_connection(SMPT, PORT, FROM_EMAIL, PASSWORD)
-
-    if need_to_fix_list:
-        project_info = get_project_info(list_filename)
-        MESSAGE = project_info[0]['Blast Message']
-        mailing_list = fixing_df(list_filename, MESSAGE, FROM_NAME,slice_size)
-    else:
-        mailing_list = fixing_df_bis(list_filename, slice_size)
-    # -----------------
-    #mailing_list = fixing_df(list_filename, MESSAGE, FROM_NAME,slice_size)
-    #mailing_list = fixing_df_bis(list_filename, slice_size)
-    # -----------------
-
-    with open('footer.txt', 'r', encoding='utf-8') as file:
-        footer = file.read()
-    footer = footer.format(FROM_NAME=FROM_NAME)
-
-    n = 1
-    for mail in mailing_list:
-        message_1 = mail['message'] + '\n\n' + footer
-        msg = create_mail_msg_object(message_1, FROM_NAME, FROM_EMAIL, mail['Email'])
-        mailserver.sendmail(msg['From'], msg['To'], msg.as_string())
-        wait_time = random.randint(3, 15)
-        message = '\nemail sent to {email}\n{total_sent} sent emails in total'.format(email=mail['Email'], total_sent=n)
-        print(message)
-        time.sleep(wait_time)
-        n += 1
-        
-    mailserver.quit()
-"""
-
 def update_log(df):
     df = df[['Email','project_number','status','timestamp']]
-    log_path = '/Users/albertoruizcajiga/Documents/final_final/list_master/databases/log/log.csv'
+    log_path = const.LOG_PATH
     df_log = pd.read_csv(log_path)
 
     df_log = pd.concat([df_log,df], ignore_index=True)
     df_log.to_csv(log_path, index=False)
 
-
 def send_emails_selenium(cc):
     today = datetime.date.today()
-    os.chdir('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/mailing_bot')
+    os.chdir(const.MAILING_PATH)
     FROM_EMAIL = input("\nAvailable emails:\n\nnancy@sisinternational.com\nanna@sisinternational.com\njohn@sisinternational.com\ncharles@sisinternational.com\n\nSelect email: ")
     slice_size = int(input("Select how many emails you want to send out: "))
     list_filename = 'mm_list.csv'
@@ -280,30 +243,36 @@ def send_emails_selenium(cc):
     driver.quit()
 
 
+"""
+def send_emails_smtp(need_to_fix_list):
 
-slice_size = 10
+    mailserver = start_smtp_connection(SMPT, PORT, FROM_EMAIL, PASSWORD)
 
+    if need_to_fix_list:
+        project_info = get_project_info(list_filename)
+        MESSAGE = project_info[0]['Blast Message']
+        mailing_list = fixing_df(list_filename, MESSAGE, FROM_NAME,slice_size)
+    else:
+        mailing_list = fixing_df_bis(list_filename, slice_size)
+    # -----------------
+    #mailing_list = fixing_df(list_filename, MESSAGE, FROM_NAME,slice_size)
+    #mailing_list = fixing_df_bis(list_filename, slice_size)
+    # -----------------
 
-list_filename = '1009031_cleaned.csv'
-#msg_filename = '1000292_uk_kurun.txt' DELETE
-FROM_NAME = 'Ruth Stanat'
+    with open('footer.txt', 'r', encoding='utf-8') as file:
+        footer = file.read()
+    footer = footer.format(FROM_NAME=FROM_NAME)
 
-# SMTP credentials --------------------- SMTP credentials 
-SMPT = 'smtp.office365.com'
-PORT = 587
-PASSWORD = 'Happy1920Daddy!!'
-# SMTP credentials --------------------- SMTP credentials 
-
-# EMAIL ACCOUNTS
-# SMTP -------------------------------------------- SMTP
-#FROM_EMAIL = 'ruthstanat@sisconsulting.org'
-#FROM_EMAIL = 'ruthstanat@sis-insight.net'
-# SMTP -------------------------------------------- SMTP
-
-# Selenium -------------------------------------------- Selenium
-#FROM_EMAIL = 'nancy@sisinternational.com'
-#FROM_EMAIL = 'anna@sisinternational.com'
-#FROM_EMAIL = 'DBini@sisinternational.com'
-# Selenium -------------------------------------------- Selenium
-
-
+    n = 1
+    for mail in mailing_list:
+        message_1 = mail['message'] + '\n\n' + footer
+        msg = create_mail_msg_object(message_1, FROM_NAME, FROM_EMAIL, mail['Email'])
+        mailserver.sendmail(msg['From'], msg['To'], msg.as_string())
+        wait_time = random.randint(3, 15)
+        message = '\nemail sent to {email}\n{total_sent} sent emails in total'.format(email=mail['Email'], total_sent=n)
+        print(message)
+        time.sleep(wait_time)
+        n += 1
+        
+    mailserver.quit()
+"""

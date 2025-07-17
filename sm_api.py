@@ -2,6 +2,7 @@
 import requests, json, datetime, time
 import pandas as pd
 import datetime
+import constants as const
 
 # SM Permissions: view collectors and view surveys
 headers = {
@@ -65,7 +66,7 @@ def UpdateSMReport():
     #yesterday = today - datetime.timedelta(1)
     try:
         # Variables
-        path = '/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/SIS final'
+        path = const.SM_RESPONSES_DIR
         filename = 'sm_responses.xlsx'
         filename_out = '{0}/{1}'.format(path,filename)
 
