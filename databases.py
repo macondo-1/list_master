@@ -56,7 +56,8 @@ class SM_Database():
 
 
             elif choice == '2':
-                filtered_database.to_csv('{}/extracted_list.csv'.format(const.SM_DB_DIR_PATH), index=False)
+                filename_out = const.SM_DB_DIR_PATH.joinpath('extracted_list.csv')
+                filtered_database.to_csv(filename_out, index=False)
                 return filtered_database
 
             

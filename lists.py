@@ -53,7 +53,7 @@ class list_:
             file_path = Path(file_path)
             file_name = file_path.stem
 
-            projects_dir_path = Path(const.NEW_PATH_TO_PROJECST_DB)
+            projects_dir_path = const.NEW_PATH_TO_PROJECST_DB
 
             df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
             project_info1 = list_.get_project_info(file_name,df_blast_master)
@@ -239,10 +239,9 @@ class list_:
         return df
 
     def CleanListManually():
-        os.chdir(const.PROCESSING_FOLDER)
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+        all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
 
-        all_read_paths = [i for i in glob.glob('*.csv')]
-        all_read_paths += [i for i in glob.glob('*.xlsx')]
         failed_files = []
         for file_name in all_read_paths:
 
@@ -316,35 +315,22 @@ class list_:
 
     def CleanLists(save_to_project_dir):
         try:
-
             export = int(input('prepare to export? [0/1]: '))
             dedupe = input('dedupe from mm log? [y/n]: ')
 
-            # TRYING TO FIX THE FILE NAMES
-
-            # all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
-            # all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
-
-            # for read_path in all_read_paths:
-
-            #     new_name = read_path.split('.')
-            #     extension = new_name[-1]
-            #     new_name = new_name[:-1]
-            #     new_name = '_'.join(new_name)
-            #     new_name = new_name.replace('.','_').replace(' ','_').replace('__','_')
-            #     new_name = '{0}.{1}'.format(new_name,extension)  
-            #     print(read_path)  
-            #     print(new_name)
-            #     os.rename(read_path,new_name)   
-
-            all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
-            all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
+            all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+            all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
+            print(const.PROCESSING_FOLDER)
+            print(all_read_paths)
 
             for read_path in all_read_paths:
                 try:
                     if save_to_project_dir == 'y':
                         list_.save_raw_file_to_project_dir(read_path)
                     df = list_.ReadList(read_path)
+                    columns = list(df.columns)
+                    if 'quality' in columns:
+                        df = df[df['quality'] == 'good']
                     df = list_.FixColumns(df)
                     df = list_.FixRecords(df)
                     df = list_.CleanBlacklisted(df)
@@ -352,16 +338,13 @@ class list_:
                         df = list_.DedupeFromLog(df)
                     if export:
                         df = df[['first_name','email']]
-                    out_name = read_path.split('.')[0]
-                    extension = read_path.split('.')[1]
-                    #if extension == 'xlsx':
                     os.remove(read_path)
 
-                    out_name = out_name.split('/')
-                    out_name[-1] = out_name[-1].replace(' ','_')
-                    out_name = '/'.join(out_name)
-                    out_name += '.csv'
+                    out_name = read_path.stem
+                    out_name = out_name.replace(' ','_')
+                    out_name = read_path.parent / '{}.csv'.format(out_name)
                     df.to_csv(out_name, index=False)
+
                 except Exception as e:
                     error_message = 'failed cleaning: {0}'.format(read_path)
                     print(error_message)
@@ -403,24 +386,22 @@ class list_:
         return projects_dict
 
     def CheckAgainstAlreadySentEmails():
-        df = pd.read_csv(const.MM_LOG_PATH)
+        df = pd.read_csv(const.LOG_PATH)
         sent_emails = df['Email']
     
     def CreateMMList():
         try:
-            os.chdir(const.MAILING_PATH)
             FROM_NAME = 'Ruth Stanat'
 
             #reading file names
-            file_extension = '.csv'
-            all_filenames = [i for i in glob.glob(f"*{file_extension}")]
+            all_filenames = [i for i in const.MAILING_PATH.glob('*.csv')]
             df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
             #df_blast_master = df_blast_master.set_index('Unnamed: 1')
 
             #iterating over each csv
             for file_name in all_filenames:
-                p_number = file_name.split('_')[0]
-                project_info1 = list_.get_project_info(file_name,df_blast_master)
+                p_number = file_name.name.split('_')[0]
+                project_info1 = list_.get_project_info(file_name.name,df_blast_master)
                 MESSAGE = project_info1['Blast Message']
 
                 df = pd.read_csv(file_name)
@@ -431,13 +412,15 @@ class list_:
                 df = df.replace({'First_name':'None'},'Colleague')
                 df['message'] = df.apply(lambda row: MESSAGE.format(First_name=row['First_name'], FROM_NAME=FROM_NAME), axis=1)
                 df['project_number'] = p_number
+                print(file_name)
                 df.to_csv(file_name, index = False)
             
             concatenated_df = pd.concat([pd.read_csv(f,low_memory=False) for f in all_filenames])
             concatenated_df = concatenated_df.sort_values(by='Email', ascending=True)
             concatenated_df = concatenated_df[['Email','First_name','message','project_number']]
             
-            concatenated_df.to_csv('mm_list.csv', index = False)
+            filename_out = const.MAILING_PATH.joinpath('mm_list.csv')
+            concatenated_df.to_csv(filename_out, index = False)
             mm_list_len = len(concatenated_df)
             print("\nnew mm list length: {mm_list_len}\n".format(mm_list_len=mm_list_len))
 
@@ -448,14 +431,14 @@ class list_:
 
     def DecomposeMMList():
         try:
-            filename = '{0}/mm_list.csv'.format(const.MAILING_PATH)
+            filename = const.MAILING_PATH.joinpath('mm_list.csv')
             df = pd.read_csv(filename)
 
             projects_list = list(df['project_number'].unique())
 
             for project in projects_list:
                 df_out = df[df['project_number'] == project]
-                filename_out = '{0}/{1}_mm_list.csv'.format(const.MAILING_PATH,project)
+                filename_out = const.MAILING_PATH.joinpath('{}_mm_list.csv'.format(project))
                 df_out.to_csv(filename_out, index=False)
 
             os.remove(filename)
@@ -464,15 +447,12 @@ class list_:
             print(error_message)
 
     def GetURLsFromSnoToHunt():
-        os.chdir(const.PROCESSING_FOLDER)
-
         max_chunk = 25000
 
-        file_extension = '.csv'
-        all_file_names = [i for i in glob.glob(f"*{file_extension}")]
+        all_file_names = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+
 
         combined_csv_data = pd.concat([pd.read_csv(file_name,usecols=['url']) for file_name in all_file_names])
-        #combined_csv_data = pd.read_excel('LIST - Data from Client - 1.30.xlsx',usecols=['url'])
 
         combined_csv_data = combined_csv_data.drop_duplicates().dropna()
 
@@ -499,10 +479,11 @@ class list_:
             input('Press enter to continue...\n')
 
     def concat_lists():
-        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
         combined_csv_data = pd.concat([pd.read_csv(f,low_memory=False) for f in all_read_paths])
         combined_csv_data = combined_csv_data.drop_duplicates(subset=['email']).dropna(subset=['email'])
-        combined_csv_data.to_csv('{0}combined_files.csv'.format(const.PROCESSING_FOLDER), index = False)
+        filename_out = const.PROCESSING_FOLDER.joinpath('combined_files.csv')
+        combined_csv_data.to_csv(filename_out, index = False)
         for i in all_read_paths:
             os.remove(i)
 
@@ -522,25 +503,28 @@ class list_:
         """
         Dedupes list A from list B
         """
-        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
-        all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
-        print(all_read_paths)
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+        all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
+        for x in all_read_paths:
+            print(x.name)
         
         list_A = input('provide the name of the main list: ')
         list_B = input('provide the name of the dedupe list: ')
 
+        list_A = const.PROCESSING_FOLDER / list_A
         df_a = pd.read_csv(list_A)
+        list_B = const.PROCESSING_FOLDER / list_B
         df_b = pd.read_csv(list_B)
 
         df_deduped = df_a[~df_a['email'].isin(df_b['email'])]
-        df_deduped.to_csv(const.PROCESSING_FOLDER + '/deduped.csv',index=False)
+        df_deduped.to_csv(const.PROCESSING_FOLDER / 'deduped.csv',index=False)
 
     def clean_against_email_bison_db():
         """
         Deletes records that were uploaded to email bison
         """
-        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
-        all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+        all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
         email_bison_records_path = const.EMAIL_BISON_RECORDS_PATH
         email_bison_records_df = pd.read_csv(email_bison_records_path, low_memory=False)
         for x in all_read_paths:
@@ -569,8 +553,8 @@ class list_:
         """Reads a csv and divides it into the desired chunks"""
         
         chunks = int(input("Divide into how many csv's?: "))
-        all_read_paths = [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.csv'))]
-        all_read_paths += [i for i in glob.glob('{0}{1}'.format(const.PROCESSING_FOLDER,'*.xlsx'))]
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+        all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
 
         for read_path in all_read_paths:
             df = pd.read_csv(read_path)
@@ -581,7 +565,7 @@ class list_:
             chunk_number = 0
 
             while total_lenght > 0:
-                file_name = const.PROCESSING_FOLDER + '_' + str(chunk_number) + '.csv'
+                file_name = const.PROCESSING_FOLDER.joinpath('_{}.csv'.format(chunk_number))
                 if int(chunk_number+1) == int(chunks):
                     df[initial_chunk:].to_csv(file_name, index=False)
                     total_lenght = 0

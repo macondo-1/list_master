@@ -10,6 +10,7 @@ import time
 from datetime import date
 import datetime
 import glob
+from pathlib import Path
 
 from lists import list_
 
@@ -113,7 +114,7 @@ class Hetz_ga(webdriver.Chrome):
     def select_upload_file(self,File_path):
         try:
             file_input = self.find_element('id',"subscriber_import_file")
-            file_input.send_keys(File_path)
+            file_input.send_keys(str(File_path))
         except:
             print('failed selecting the upload file')
 
@@ -489,13 +490,10 @@ def import_list():
     today = date.today()
     d1 = today.strftime("%Y%m%d")
     suffix = str('_' + d1)
-    folder = const.ACTIVE_TO_PROCESS_PATH
-    os.chdir(folder)
     to_blast_path = const.TO_BLAST_PATH
     to_blast_df = pd.read_csv(to_blast_path)
 
-    file_extension = '.csv'
-    all_filenames = [i for i in glob.glob(f"*{file_extension}")]
+    all_filenames = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
 
     
     with Hetz_ga() as bot:
@@ -515,11 +513,11 @@ def import_list():
             # -------------------------------------
 
             try:
-                project_info = bot.get_project_info(file_name,df_blastmaster)
+                project_info = bot.get_project_info(file_name.name, df_blastmaster)
                 Server = project_info['GA']
                 Template_name = project_info['template_name']
                 #Campaign_name = Template_name + suffix
-                List_name_2 = file_name.split('.')[0]
+                List_name_2 = file_name.name.split('.')[0]
                 List_name_2 = List_name_2.split('_', 1)[1]
                 Credentials = bot.read_server_credentials(Server)
                 bot.land_login_page(Credentials['login_page'])
@@ -550,8 +548,8 @@ def import_list():
                 time.sleep(0.5)
                 bot.set_char_set()
                 time.sleep(5)
-                print('{0}/{1}'.format(folder,file_name))
-                bot.select_upload_file('{0}/{1}'.format(folder,file_name))
+                print(file_name)
+                bot.select_upload_file(file_name)
                 time.sleep(5)
                 bot.continue_import()
                 time.sleep(0.5)
@@ -581,7 +579,8 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
         df_blastmaster = pd.read_excel(const.BLAST_MASTER_PATH)
         for file_name in to_blast_df['list_name']:
             try:
-                project_info = bot.get_project_info(file_name,df_blastmaster)
+                file_name = Path(file_name)
+                project_info = bot.get_project_info(file_name.name,df_blastmaster)
                 Server = project_info['GA']
                 Template_name = project_info['template_name']
                 Credentials = bot.read_server_credentials(Server)
@@ -624,8 +623,8 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
                 elif Campaign_name in campaign_names_list:
                     Campaign_name = Template_name + suffix + '_B'
 
-
-                List_name_2 = file_name.split('.')[0]
+                
+                List_name_2 = file_name.stem
                 List_name_2 = List_name_2.split('_', 1)[1]
                 List_name_2 = List_name_2.split(' ')[0] #new
                 
