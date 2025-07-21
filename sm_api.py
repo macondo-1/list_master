@@ -66,9 +66,7 @@ def UpdateSMReport():
     #yesterday = today - datetime.timedelta(1)
     try:
         # Variables
-        path = const.SM_RESPONSES_DIR
-        filename = 'sm_responses.xlsx'
-        filename_out = '{0}/{1}'.format(path,filename)
+        filename_out = const.SM_RESPONSES_DIR.joinpath('sm_responses.xlsx')
 
         # Fixing df before entering the for loop
         df = pd.read_excel(filename_out)

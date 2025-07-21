@@ -1,0 +1,16 @@
+.myenv
+databases
+mm
+projects
+sm_database
+to_process
+constants.py
+datafile.db
+notes.ipynb
+deduped.csv
+combined_files.csv
+notes.py
+utilities
+__pycache__/
+.DS_Store
+constants_og.py

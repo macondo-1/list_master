@@ -88,8 +88,8 @@ class Database:
 
 
             project_list = valid_per_project.rename(columns={'project':'project_number'})
-            dir_out = const.PROCESSING_FOLDER
-            project_list.to_csv('{0}{1}.csv'.format(dir_out, project_id), index=False)
+            filename_out = const.PROCESSING_FOLDER.joinpath('{1}.csv'.format(project_id))
+            project_list.to_csv(filename_out, index=False)
 
         #valid_emails_to_mm = valid_emails_to_mm.rename(columns={'project':'project_number'})
         #valid_emails_to_mm.to_csv('/Users/albertoruizcajiga/Documents/Documents - Alberto’s MacBook Air/final_final/to_process/mm_list.csv', index=False)
@@ -107,8 +107,8 @@ class Database:
             valid_per_project = valid_per_project[:exctract_dict[project_id]]
 
             project_list = valid_per_project.rename(columns={'project':'project_number'})
-            dir_out = const.PROCESSING_FOLDER
-            project_list.to_csv('{0}{1}.csv'.format(dir_out, project_id), index=False)
+            filename_out = const.PROCESSING_FOLDER.joinpath('{1}.csv'.format(project_id))
+            project_list.to_csv(filename_out, index=False)
     
     def UpdateTableAfterExtractionValidEmails(self, project_db_df, out_df, conn):
         """
@@ -272,8 +272,8 @@ class Database:
 
                 outgoing_list = outgoing_list[:max_size_list]
                 outgoing_list.loc[outgoing_list['first_name'].isna(), 'first_name'] = 'Colleague'
-                out_path = const.MAILING_PATH
-                outgoing_list.to_csv(f'{out_path}/{project}_cleaned.csv', index = False, columns = ['first_name','email'])
+                out_path = const.MAILING_PATH.joinpath('{}_cleaned.csv'.format(project))
+                outgoing_list.to_csv(out_path, index = False, columns = ['first_name','email'])
                 emails_list = list(outgoing_list['email'])
 
                 condition = database_df['email'].isin(emails_list)          
@@ -326,7 +326,7 @@ class Log:
     def __init__(self):
         self.today = datetime.date.today()
         self.today = pd.to_datetime(self.today)
-        self.path = const.MM_LOG_PATH
+        self.path = const.LOG_PATH
         self.df = pd.read_csv(self.path)
         self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], dayfirst=True)
 

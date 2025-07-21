@@ -189,10 +189,9 @@ def update_log(df):
 
 def send_emails_selenium(cc):
     today = datetime.date.today()
-    os.chdir(const.MAILING_PATH)
     FROM_EMAIL = input("\nAvailable emails:\n\nnancy@sisinternational.com\nanna@sisinternational.com\njohn@sisinternational.com\ncharles@sisinternational.com\n\nSelect email: ")
     slice_size = int(input("Select how many emails you want to send out: "))
-    list_filename = 'mm_list.csv'
+    list_filename = const.MAILING_PATH.joinpath('mm_list.csv')
 
     PASSWORD = email_passwords_dict[FROM_EMAIL]
 
@@ -207,10 +206,8 @@ def send_emails_selenium(cc):
     except:
         print('failed loging into selenium')
 
-
     n = 1
     for mail in mailing_list:
-
         try:
             send_email_selenium(mail['Email'], mail['message'], driver, cc)
             message = '\nemail sent to {email}\n{total_sent} sent emails in total'.format(email=mail['Email'], total_sent=n)
