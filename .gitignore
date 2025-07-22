@@ -11,7 +11,7 @@ deduped.csv
 combined_files.csv
 notes.py
 utilities
-__pycache__
+__pycache__/
 .DS_Store
 constants_og.py
 test_lists

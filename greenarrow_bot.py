@@ -679,7 +679,7 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
                 print(Campaign_name)
                 print('')
                 time.sleep(10)
-                sent_lists.append(file_name)
+                sent_lists.append(str(file_name))
 
             except:
                 print('\nfailed file:')
@@ -687,7 +687,8 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
                 print(Campaign_name)
                 print('')
 
-
+        print('file name: ', file_name)
+        print('list: ', sent_lists)
         to_blast_df = to_blast_df[~to_blast_df['list_name'].isin(sent_lists)]
         to_blast_df.to_csv(to_blast_path, index=False)
 

@@ -57,6 +57,8 @@ class Display:
 
     [23] Clean against email bison
 
+    [24] Extract project's filter from internal database
+
     [Q] Quit
     """
         
