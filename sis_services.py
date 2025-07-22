@@ -166,6 +166,10 @@ if __name__ == '__main__':
 
         elif choice == '23':
             list_.clean_against_email_bison_db()
+
+        elif choice == '24':
+            db_handler = Database()
+            db_handler.extract_projects_filter_from_internal_database()
             
         elif choice == 'q':
             cli_display.quit()

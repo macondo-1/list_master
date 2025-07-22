@@ -59,7 +59,6 @@ class SM_Database():
                 filename_out = const.SM_DB_DIR_PATH.joinpath('extracted_list.csv')
                 filtered_database.to_csv(filename_out, index=False)
                 return filtered_database
-
             
 class ProjectDatabase():
     """
@@ -179,6 +178,7 @@ class ValidEmailsDB():
         new_list_df = new_list_df[['email','first_name']]
         new_list_df = new_list_df[~new_list_df['email'].isin(self.database_dataframe['email'])]
         new_list_df.to_sql('valid_emails', self.conn, if_exists='append')
+
 
         
 if __name__ == '__main__':

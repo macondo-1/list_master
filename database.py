@@ -126,11 +126,6 @@ class Database:
         Retrieves the valid emails database and returns the available emails per project
         """
 
-
-
-
-
-
     def ConnectToProjectsDB():
         db_path = '{0}projects_database.db'.format(const.PROJECTS_PATH)
         conn = sqlite3.connect(db_path)
@@ -184,7 +179,6 @@ class Database:
         project_db_df.loc[condition, 'last_sent'] = timestamp
         project_db_df.to_sql(project_id, con=conn, if_exists='replace')
 
-
     def UpdateBlockedEmails(self):
 
         blocked_rows = pd.read_csv(const.BLACKLIST_PATH , on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
@@ -213,7 +207,6 @@ class Database:
             print('Added {0} new records'.format(new_records_len))
         else:
             print('No new records were added')
-
 
     def get_one_email_per_domain(self, df):
         unique_emails = df.groupby(df['email'].str.split('@').str[1]).first().reset_index(drop=True)
@@ -316,7 +309,35 @@ class Database:
         blast_needs['blast_report'].to_clipboard(header=False, index=False)
         print(blast_needs['blast_report'])
 
+    def extract_projects_filter_from_internal_database(self):
+        """
+        reads the project's filter
+        parses de survey monkey database
+        exports csv
+        """
+        df_database = pd.read_csv(const.database_path, low_memory=False)
+        df_out = df_database
 
+        project_name = input('Project template name: ')
+        filter_path = '{}_filter.csv'.format(project_name)
+        filter_path = const.NEW_PATH_TO_PROJECST_DB.joinpath(project_name,filter_path)
+
+        df_filter = pd.read_csv(filter_path)
+        df_filter = df_filter.dropna(axis=1, how='all')
+        df_filter_columns = df_filter.columns
+
+        filter_dict = {}
+        for column in df_filter_columns:
+            keywords_list = list(df_filter[column].dropna())
+            keywords = '|'.join(keywords_list)
+            filter_dict[column] = keywords
+        
+        for column, keywords in filter_dict.items():
+            df_out = df_out[df_out[column].str.contains(keywords, case=False, na=False)]
+
+        filename_out = '{}.csv'.format(project_name)
+        filename_out = const.PROCESSING_FOLDER.joinpath(filename_out)
+        df_out.to_csv(filename_out, index=False)
 
 class Log:
     """
