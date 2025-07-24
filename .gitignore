@@ -19,3 +19,5 @@ modules/constants.py
 modules/email_bison_api/constants.py
 modules/email_bison_api/credentials.py
 modules/sis_international/constants.py
+!modules/email_bison_api/
+!modules/sis_international/
