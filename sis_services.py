@@ -197,7 +197,6 @@ def main_concurrency():
             handler = Log()
             handler.mailmerge_summary(input_date)
 
-
         elif choice == '11':
             with lock:
                 current_task = task_counter

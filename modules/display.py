@@ -47,6 +47,7 @@ class Display:
     💻 SYSTEM
     [17] Block email(s)
     [18] create project folder
+    [19] Graph all projects
     [Q] Quit
     """
         
