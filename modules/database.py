@@ -208,6 +208,34 @@ class Database:
         else:
             print('No new records were added')
 
+    def update_blocked_emails_concurrency(self, emails_to_blocklist):
+
+        blocked_rows = pd.read_csv(const.BLACKLIST_PATH , on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
+        blocked_rows = blocked_rows.rename(columns={0:'email'})
+        blocked_rows['email'] = blocked_rows['email'].str.lower()
+
+        emails_to_blocklist = emails_to_blocklist.split(',')
+        emails_to_blocklist = [x.lower() for x in emails_to_blocklist]
+        emails_to_blocklist = {'email':emails_to_blocklist}
+
+        ## updating from file
+        # emails_to_blocklist = pd.read_csv('/Users/albertoruizcajiga/Library/CloudStorage/GoogleDrive-beautifulday874@gmail.com/My Drive/Information_Technology/blacklist_emails.txt', header=None)
+        # emails_to_blocklist = {'email':emails_to_blocklist[0].to_list()}
+        
+        emails_to_blocklist = pd.DataFrame(emails_to_blocklist)
+
+        new_block_list = pd.concat([blocked_rows,emails_to_blocklist])
+        new_block_list = new_block_list.drop_duplicates(subset='email')
+
+        new_block_list.to_csv(const.BLACKLIST_PATH, header=False, index=False, sep='\n')
+
+        new_records_df = new_block_list[~new_block_list['email'].isin(blocked_rows['email'])]
+        new_records_len = len(new_records_df)
+        if new_records_len > 0:
+            print('Added {0} new records'.format(new_records_len))
+        else:
+            print('No new records were added')
+
     def get_one_email_per_domain(self, df):
         unique_emails = df.groupby(df['email'].str.split('@').str[1]).first().reset_index(drop=True)
         return unique_emails
@@ -339,6 +367,38 @@ class Database:
         filename_out = const.PROCESSING_FOLDER.joinpath(filename_out)
         df_out.to_csv(filename_out, index=False)
 
+    def extract_projects_filter_from_internal_database_concurrency(self, project_name:str):
+        """
+        reads the project's filter
+        parses de survey monkey database
+        exports csv
+        """
+        try:
+            df_database = pd.read_csv(const.database_path, low_memory=False)
+            df_out = df_database
+
+            filter_path = '{}_filter.csv'.format(project_name)
+            filter_path = const.NEW_PATH_TO_PROJECST_DB.joinpath(project_name,filter_path)
+
+            df_filter = pd.read_csv(filter_path)
+            df_filter = df_filter.dropna(axis=1, how='all')
+            df_filter_columns = df_filter.columns
+
+            filter_dict = {}
+            for column in df_filter_columns:
+                keywords_list = list(df_filter[column].dropna())
+                keywords = '|'.join(keywords_list)
+                filter_dict[column] = keywords
+            
+            for column, keywords in filter_dict.items():
+                df_out = df_out[df_out[column].str.contains(keywords, case=False, na=False)]
+
+            filename_out = '{}.csv'.format(project_name)
+            filename_out = const.PROCESSING_FOLDER.joinpath(filename_out)
+            df_out.to_csv(filename_out, index=False)
+        except Exception as e:
+            print('error: ',e)
+
 class Log:
     """
     This class handles everything related to the mailmerge logs
@@ -349,7 +409,7 @@ class Log:
         self.today = pd.to_datetime(self.today)
         self.path = const.LOG_PATH
         self.df = pd.read_csv(self.path)
-        self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], dayfirst=True)
+        self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], format='mixed', dayfirst=True)
 
     def mailmerge_summary(self, input_date):
         """
@@ -366,5 +426,23 @@ class Log:
 
         total_count = df1['count'].sum()
 
-        print(df1)
+        df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
+        df_blast_master = df_blast_master[['Unnamed: 0','Unnamed: 1','project_name']]    
+        df_blast_master.rename(columns={'Unnamed: 0':'project_number_1',
+                                        'Unnamed: 1':'project_number'
+                                        }, inplace=True)
+        
+        merged_df = pd.merge(df1, df_blast_master, on='project_number')
+        merged_df = merged_df[['project_number_1','project_name','count']]
+        merged_df.rename(columns={'project_number_1':'project_number'}, inplace=True)
+        merged_df.set_index('project_number',inplace=True)
+        merged_df.loc['TOTAL'] = merged_df.sum(numeric_only=True)
+        merged_df['count'] = merged_df['count'].astype(int)
+
+        mailmerge_summary_path = const.PROCESSING_FOLDER.joinpath('mailmerge_summary.csv')
+        merged_df.to_csv(mailmerge_summary_path)
+
+        print(merged_df)
         print('\ntotal count: {0}'.format(total_count))
+
+        

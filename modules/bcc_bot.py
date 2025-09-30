@@ -24,7 +24,8 @@ email_passwords_dict = {'nancy@sisinternational.com':'***REMOVED***',
                         'anna@sisinternational.com':'***REMOVED***',
                         'charles@sisinternational.com':'***REMOVED***',
                         'delores@sisinternational.com':'***REMOVED***',
-                        'sisfieldwork@sisinternational.com':'***REMOVED***'
+                        'sisfieldwork@sisinternational.com':'***REMOVED***',
+                        'shubha@sisinternational.com':'Challenge2025!'
                         }
 
 BLAST_MASTER_PATH = const.BLAST_MASTER_PATH
@@ -117,7 +118,7 @@ def send_email_selenium(to_email, message, driver, cc):
     input_field = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="To"]')))
     input_field.send_keys(to_email)
     input_field.send_keys(Keys.RETURN)
-    time.sleep(5)
+    time.sleep(2)
     input_field.send_keys(Keys.RETURN)
 
     if cc:
@@ -132,6 +133,8 @@ def send_email_selenium(to_email, message, driver, cc):
     subject_field = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="Subject," or @placeholder="Add a subject"]')))
     subject_field.send_keys(message.split('\n',1)[0])
 
+    message_body = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@aria-label="Message body"]')))
+    time.sleep(1)
     message_body = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@aria-label="Message body"]')))
     message_body.send_keys(Keys.UP)
     message_body.send_keys(Keys.UP)
@@ -149,7 +152,12 @@ def send_email_selenium(to_email, message, driver, cc):
     message_body.send_keys(Keys.UP)
     message_body.send_keys(Keys.UP)
     message_body.send_keys(Keys.UP)
-    message_body.send_keys(message.split('\n',1)[1])
+
+    # Writing message body
+    with open(const.BCC_FOOTER_PATH, 'r', encoding='utf-8') as file:
+        footer = file.read()
+    message_1 = message.split('\n',1)[1] + '\n\n' + footer
+    message_body.send_keys(message_1)
 
     # Click send
     button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Send"]')))
@@ -239,6 +247,59 @@ def send_emails_selenium(cc):
     driver.close()
     driver.quit()
 
+def send_emails_selenium_concurrency(cc, FROM_EMAIL, slice_size):
+    today = datetime.date.today()
+    #FROM_EMAIL = input("\nAvailable emails:\n\nnancy@sisinternational.com\nanna@sisinternational.com\njohn@sisinternational.com\ncharles@sisinternational.com\n\nSelect email: ")
+    #slice_size = int(input("Select how many emails you want to send out: "))
+    list_filename = const.MAILING_PATH.joinpath('mm_list.csv')
+
+    PASSWORD = email_passwords_dict[FROM_EMAIL]
+
+    mailing_list = fixing_df_bis(list_filename, slice_size) # This function reads a csv as a dataframe and then turns it into a dict
+    new_df = pd.DataFrame(mailing_list)                     # which seems unecessary if I'm turning it into a DF back again here
+    new_df['timestamp'] = today
+
+    try:
+        driver = initialize_selenium()
+        signin_selenium(driver, FROM_EMAIL, PASSWORD)
+        time.sleep(2)
+    except:
+        print('failed loging into selenium')
+
+    n = 1
+    for mail in mailing_list:
+        try:
+            send_email_selenium(mail['Email'], mail['message'], driver, cc)
+            message = '\nemail sent to {email}\n{total_sent} sent emails in total'.format(email=mail['Email'], total_sent=n)
+            print(message)
+            n += 1
+
+            df_index = new_df[new_df['Email'] == mail['Email']].index
+            new_df.loc[df_index,'status'] = 'sent'
+            
+
+        except Exception as error:
+            print('\nfailed sending email to: {email}'.format(email=mail['Email']))
+            print("An exception occurred:", error) # An exception occurred: division by zero
+            driver.refresh()
+
+            df_index = new_df[new_df['Email'] == mail['Email']].index
+            new_df.loc[df_index,'status'] = 'failed'
+
+        except KeyboardInterrupt:
+            new_df['status'] = new_df['status'].replace(np.nan,'failed')
+            update_log(new_df)
+            print('failed emails saved')
+
+        except UnboundLocalError:
+            print('update drivers json to continue')
+
+    #condition = new_df['status'] == 'failed'
+    print('updating log...')
+    update_log(new_df)
+    print('log updated')
+    driver.close()
+    driver.quit()
 
 """
 def send_emails_smtp(need_to_fix_list):

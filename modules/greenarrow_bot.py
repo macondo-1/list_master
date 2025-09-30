@@ -12,7 +12,7 @@ import datetime
 import glob
 from pathlib import Path
 
-from modules.lists import list_
+from lists import list_
 
 today = date.today()
 datetime_obj = datetime.datetime.combine(today, datetime.time())
@@ -49,54 +49,42 @@ class Hetz_ga(webdriver.Chrome):
     def land_new_list_page(self,new_list_page_url):
         self.get(new_list_page_url)
 
-
-
-
     def setup_list_name(self,List_name):
         list_name = self.find_element('id','mailing_list_name')
         List_name = List_name.split('.')[0]
         list_name.send_keys(List_name)
 
-
     def setup_sending_speed(self,Sending_speed=300):
         list_name = self.find_element('id','mailing_list_d_speed')
         list_name.send_keys(Sending_speed)
-
 
     def setup_from_name(self,From_name='Research'):
         list_name = self.find_element('id','mailing_list_d_from_name')
         list_name.send_keys(From_name)
 
-
     def setup_from_email(self,From_email):
         list_name = self.find_element('id','mailing_list_d_from_email')
         list_name.send_keys(From_email)
-
 
     def setup_virtual_mta(self,mta='Default-Adil'):
         list_name = self.find_element('id','mailing_list_d_virtual_mta_id')
         list_name.send_keys(mta)
 
-
     def setup_url_domain(self,Url_domain):
         list_name = self.find_element('id','mailing_list_d_url_domain_id')
         list_name.send_keys(Url_domain)
-
 
     def setup_bounce_email(self,Bounce_email):
         list_name = self.find_element('id','mailing_list_d_bounce_email_id')
         list_name.send_keys(Bounce_email)
 
-
     def create_list(self):
         button = self.find_element(By.XPATH,"//button[contains(text(), 'Create this mailing list')]")
         button.click()
 
-
     def land_import_page(self):
         button = self.find_element(By.XPATH,"//a[contains(text(), 'Import')]")
         button.click()
-
 
     def dont_update_suscribers(self):
         radio_button = self.find_element('id','subscriber_import_overwrite_subscribers_false')
@@ -110,14 +98,12 @@ class Hetz_ga(webdriver.Chrome):
         if not radio_button.is_selected():
             radio_button.click()
 
-
     def select_upload_file(self,File_path):
         try:
             file_input = self.find_element('id',"subscriber_import_file")
             file_input.send_keys(str(File_path))
         except:
             print('failed selecting the upload file')
-
 
     def continue_import(self):
         button = self.find_element(By.XPATH,"//button[contains(text(), 'Continue with this import')]")
@@ -153,8 +139,6 @@ class Hetz_ga(webdriver.Chrome):
 
         return Credentials
     
-    # --------------------------
-
     def land_template_pages(self,template_page_url):
         self.get(template_page_url)
 
@@ -212,11 +196,11 @@ class Hetz_ga(webdriver.Chrome):
         Edit_segment = self.find_element(By.CLASS_NAME,'serialize-segmentation-criteria')
         Edit_segment.click()
 
-
-
     def land_campaigns_page(self, campaigns_page_url):
         self.get(campaigns_page_url)
 
+    def land_jobs_page(self, jobs_page_url):
+        self.get(jobs_page_url)
 
     def get_active_campaigns_freq_dict(self):
         # Gets a dictionary with the frequency of the active campaigns
@@ -282,7 +266,6 @@ class Hetz_ga(webdriver.Chrome):
 
         return active_campaig_freq_dict
     
-
     def get_active_campaigns_names(self):
         # Gets a dictionary with the frequency of the active campaigns
 
@@ -316,7 +299,6 @@ class Hetz_ga(webdriver.Chrome):
 
         return campaign_name_list
 
-    
     def get_project_info(self, file_name, df_blastmaster):
 
         try:
@@ -403,7 +385,6 @@ class Hetz_ga(webdriver.Chrome):
         new_url = current_url[0]
         return new_url
 
-
     def get_pending_lists(self):
         
         df = pd.read_excel(const.BLAST_MASTER_PATH)
@@ -422,16 +403,6 @@ class Hetz_ga(webdriver.Chrome):
         pending_lists = list(todays_blasts['today_blast'])
         return pending_lists
     
-    # MODIFY: This might be useless now
-    # def delete_sent_pending_lists(self,pending_list):
-    #     df = pd.read_excel(const.BLAST_MASTER_PATH)
-    #     df.set_index('Unnamed: 1', inplace = True)
-    #     df.rename({'Unnamed: 0':'project_number'}, axis='columns', inplace = True)
-
-    #     df.replace(pending_list, None, inplace=True)
-
-    #     df.to_excel('/Users/albertoruizcajiga/Desktop/blast_master_good_final_RENEWED.xlsx') 
-
     def pause_all_campaigns(self):
         self.execute_script("document.getElementById('campaigns-in-progress').scrollIntoView();")
         table = self.find_element(By.ID, "in-progress-campaigns-table")
@@ -447,7 +418,6 @@ class Hetz_ga(webdriver.Chrome):
             # Wait for the page to reload
             WebDriverWait(self, 10).until(lambda d: d.execute_script("return document.readyState") == "complete")
 
-    
     def start_campaigns_in_reverse(self):
         self.execute_script("document.getElementById('campaigns-in-progress').scrollIntoView();")
         table = self.find_element(By.ID, "in-progress-campaigns-table")
@@ -481,10 +451,20 @@ class Hetz_ga(webdriver.Chrome):
 
         return list_names
 
+    def get_active_jobs_table_as_list(self):
+        #self.execute_script("document.getElementById('jobs-in-progress-table').scrollIntoView();")
+        table = self.find_element(By.ID, "jobs-in-progress-table")
+        rows = table.find_elements(By.TAG_NAME, "tr")
 
+        active_jobs_list = []
 
+        for row in rows:
+            columns = row.find_elements(By.TAG_NAME, "td")
+            active_jobs_list.append(columns[0].text)
 
-
+        active_jobs_list = [x.split('\n')[1] for x in active_jobs_list if len(x.split('\n')) > 1]
+        
+        return active_jobs_list
 
 def import_list():
     today = date.today()
@@ -500,9 +480,6 @@ def import_list():
         df_blastmaster = pd.read_excel(const.BLAST_MASTER_PATH)
         for file_name in all_filenames:
 
-            # Not sure what's happening here ------
-            # everything turns out to be a failed file, but it doesn't makes sense
-            # since the function still works
             try:
                 df = list_.ReadList(file_name)
                 df = df.rename({'First_name':'first_name','Email':'email'})
@@ -566,6 +543,20 @@ def import_list():
             
             to_blast_df.to_csv(to_blast_path, index=False)
 
+def get_active_jobs_table_as_list_(file_name):
+    with Hetz_ga() as bot:
+        df_blastmaster = pd.read_excel(const.BLAST_MASTER_PATH)
+        project_info = bot.get_project_info(file_name.name, df_blastmaster)
+        Server = project_info['GA']
+        Credentials = bot.read_server_credentials(Server)
+        bot.land_login_page(Credentials['login_page'])
+        time.sleep(0.5)
+        bot.sign_in(Credentials['username'],Credentials['password'])
+        time.sleep(0.5)
+        bot.land_jobs_page(Credentials['jobs_page'])
+        active_jobs_list = bot.get_active_jobs_table_as_list()
+
+    return active_jobs_list
 
 def send_campaigns_testing(campaign_speed, not_sent_in=30):
     today = date.today()
@@ -692,7 +683,21 @@ def send_campaigns_testing(campaign_speed, not_sent_in=30):
         to_blast_df = to_blast_df[~to_blast_df['list_name'].isin(sent_lists)]
         to_blast_df.to_csv(to_blast_path, index=False)
 
+    def get_recent_jobs_table_as_list(self):
+        self.execute_script("document.getElementById('recent-jobs-table').scrollIntoView();")
+        table = self.find_element(By.ID, "recent-jobs-table")
+        rows = table.find_elements(By.TAG_NAME, "tr")
 
+        finished_jobs_list = []
+
+        for row in rows[:1]:
+            columns = row.find_elements(By.TAG_NAME, "td")
+            
+            # Extracting details. Adjust the indices based on the table structure
+            if len(columns) >= 4:  # Ensure there are enough columns
+                finished_jobs_list.append(columns[0].text)
+
+        return finished_jobs_list
 
 if __name__ == '__main__':
     with Hetz_ga() as bot:
@@ -701,12 +706,27 @@ if __name__ == '__main__':
         time.sleep(0.5)
         bot.sign_in(Credentials['username'],Credentials['password'])
         time.sleep(0.5)
-        bot.land_query_lists_page('germany')
-        time.sleep(0.5)
-        list_names = bot.get_list_names_from_query()
+        bot.land_jobs_page(Credentials['jobs_page'])
+        time.sleep(2)
+        a = bot.get_active_jobs_table_as_list()
 
-        project_number = '1431082_'
-        list_names = [project_number + x + '.csv\n' for x in list_names]
-        filename = const.TO_BLAST_PATH
-        with open(filename, 'a') as f:
-            f.writelines(list_names)
+        print(a)
+
+
+
+    # Find out what does this do
+    # with Hetz_ga() as bot:
+    #     Credentials = bot.read_server_credentials('new_aws_ga')
+    #     bot.land_login_page(Credentials['login_page'])
+    #     time.sleep(0.5)
+    #     bot.sign_in(Credentials['username'],Credentials['password'])
+    #     time.sleep(0.5)
+    #     bot.land_query_lists_page('germany')
+    #     time.sleep(0.5)
+    #     list_names = bot.get_list_names_from_query()
+
+    #     project_number = '1431082_'
+    #     list_names = [project_number + x + '.csv\n' for x in list_names]
+    #     filename = const.TO_BLAST_PATH
+    #     with open(filename, 'a') as f:
+    #         f.writelines(list_names)

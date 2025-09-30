@@ -72,7 +72,7 @@ class SMTP():
         # This loop is what actually sends out the mails
         n = 1
         for mail in mailing_list:
-            message_1 = mail['message'] + '\n\n' + footer
+            message_1 = mail['message']# + '\n\n' + footer
             msg = self.create_mail_msg_object(message_1, mail['Email'])
 
             try:

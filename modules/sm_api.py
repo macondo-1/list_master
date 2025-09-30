@@ -17,7 +17,6 @@ headers_2 = {
     'Authorization': "bearer ***REMOVED***",
     'Content-Type' : 'application/json'
     }
-
 headers_3 = {
     'Authorization': "bearer ***REMOVED***",
     'Content-Type' : 'application/json'

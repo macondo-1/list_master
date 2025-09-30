@@ -1,4 +1,5 @@
 import pandas as pd
+# import modules.constants as const
 import modules.constants as const
 import re
 import csv
@@ -12,6 +13,7 @@ import numpy as np
 import shutil
 from pathlib import Path
 import datetime
+import time
 
 
 class list_:
@@ -329,8 +331,8 @@ class list_:
                         list_.save_raw_file_to_project_dir(read_path)
                     df = list_.ReadList(read_path)
                     columns = list(df.columns)
-                    if 'quality' in columns:
-                        df = df[df['quality'] == 'good']
+                    # if 'quality' in columns:
+                    #     df = df[df['quality'] == 'good']
                     df = list_.FixColumns(df)
                     df = list_.FixRecords(df)
                     df = list_.CleanBlacklisted(df)
@@ -353,6 +355,30 @@ class list_:
             error_message = 'failed cleaning lists'
             print(error_message)
 
+    def clean_lists_concurrency(df, read_path, save_to_project_dir, export, dedupe):
+        try:
+            if save_to_project_dir == 'y':
+                list_.save_raw_file_to_project_dir(read_path)
+            columns = list(df.columns)
+            if 'quality' in columns:
+                df = df[df['quality'] == 'good']
+            df = list_.FixRecords(df)
+            df = list_.CleanBlacklisted(df)
+            if dedupe == 'y':
+                df = list_.DedupeFromLog(df)
+            if export:
+                df = df[['first_name','email']]
+            os.remove(read_path)
+
+            out_name = read_path.stem
+            out_name = out_name.replace(' ','_')
+            out_name = read_path.parent / '{}.csv'.format(out_name)
+            df.to_csv(out_name, index=False)
+
+        except Exception as e:
+            error_message = 'failed cleaning: {0}'.format(read_path)
+            print(error_message)
+            print(e)
 
     def get_project_info(file_name, df_blastmaster):
         try:
@@ -391,10 +417,15 @@ class list_:
     
     def CreateMMList():
         try:
+            # time.sleep(1)
+            mm_list_total_length = int(input('How many emails to send out?: '))
+
             FROM_NAME = 'Ruth Stanat'
 
             #reading file names
             all_filenames = [i for i in const.MAILING_PATH.glob('*.csv')]
+            records_per_project = int(mm_list_total_length/len(all_filenames))
+
             df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
             #df_blast_master = df_blast_master.set_index('Unnamed: 1')
 
@@ -413,7 +444,9 @@ class list_:
                 df['message'] = df.apply(lambda row: MESSAGE.format(First_name=row['First_name'], FROM_NAME=FROM_NAME), axis=1)
                 df['project_number'] = p_number
                 print(file_name)
-                df.to_csv(file_name, index = False)
+                df[:records_per_project].to_csv(file_name, index = False)
+                df[records_per_project:].to_csv(const.PENDING_MAILING_PATH.joinpath(file_name.name), index = False)
+                
             
             concatenated_df = pd.concat([pd.read_csv(f,low_memory=False) for f in all_filenames])
             concatenated_df = concatenated_df.sort_values(by='Email', ascending=True)
@@ -519,6 +552,19 @@ class list_:
         df_deduped = df_a[~df_a['email'].isin(df_b['email'])]
         df_deduped.to_csv(const.PROCESSING_FOLDER / 'deduped.csv',index=False)
 
+    def deduper_concurrency(list_A, list_B):
+        """
+        Dedupes list A from list B
+        """
+
+        list_A = const.PROCESSING_FOLDER / list_A
+        df_a = pd.read_csv(list_A)
+        list_B = const.PROCESSING_FOLDER / list_B
+        df_b = pd.read_csv(list_B)
+
+        df_deduped = df_a[~df_a['email'].isin(df_b['email'])]
+        df_deduped.to_csv(const.PROCESSING_FOLDER / 'deduped.csv',index=False)
+
     def clean_against_email_bison_db():
         """
         Deletes records that were uploaded to email bison
@@ -553,6 +599,31 @@ class list_:
         """Reads a csv and divides it into the desired chunks"""
         
         chunks = int(input("Divide into how many csv's?: "))
+        all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
+        all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
+
+        for read_path in all_read_paths:
+            df = pd.read_csv(read_path)
+            total_lenght = len(df)
+            lenght_per_chunk = int(total_lenght/chunks)
+            initial_chunk = 0
+            final_chunk = lenght_per_chunk
+            chunk_number = 0
+
+            while total_lenght > 0:
+                file_name = const.PROCESSING_FOLDER.joinpath('_{}.csv'.format(chunk_number))
+                if int(chunk_number+1) == int(chunks):
+                    df[initial_chunk:].to_csv(file_name, index=False)
+                    total_lenght = 0
+                else:
+                    df[initial_chunk:final_chunk].to_csv(file_name, index=False)
+                    total_lenght -= lenght_per_chunk
+                initial_chunk += lenght_per_chunk
+                final_chunk += lenght_per_chunk
+                chunk_number += 1
+
+    def divide_list_concurrency(chunks):
+        """Reads a csv and divides it into the desired chunks"""
         all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
         all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
 

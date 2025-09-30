@@ -20,19 +20,19 @@ class Display:
 
     📋 LISTS
     [1] Clean list
-    [2] Clean list manually
-    [3] Concatenate lists
-    [4] Deduper
-    [5] Divide list
+    [2] Concatenate lists
+    [3] Deduper
+    [4] Divide list
     
     📊 DATABASE
-    [6] Extract project's filter from internal database
+    [5] Extract project's filter from internal database
 
     ✉️  MAILMERGE
-    [7] Create MM list
-    [8] Decompose MM list
-    [9] BCC MM list
-    [10] SMTP MM list
+    [6] Create MM list
+    [7] Decompose MM list
+    [8] BCC MM list
+    [9] SMTP MM list
+    [10] Mailmerge summary
     
     🏹 GREEN ARROW
     [11] Import list to GreenArrow
@@ -115,9 +115,9 @@ class Display:
         return input("What would you like to do? ")
     
     def quit(self):
-        print(self.kill_page)
+        #print(self.kill_page)
         print('Thanks, bye.')
-        sleep(2)
+        sleep(1)
         os.system('clear')
 
 
