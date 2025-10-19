@@ -43,11 +43,12 @@ class Display:
     [14] add list to email bison
     [15] create new project in bison
     [16] restart campaigns in bison
+    [17] get campaign stats
 
     💻 SYSTEM
-    [17] Block email(s)
-    [18] create project folder
-    [19] Graph all projects
+    [18] Block email(s)
+    [19] create project folder
+    [20] Graph all projects
     [Q] Quit
     """
         

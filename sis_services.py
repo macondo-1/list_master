@@ -20,10 +20,14 @@ import modules.email_bison_api.main as bison
 from modules.sis_international.main import Project
 from modules.sis_international.main import get_working_jsons
 from modules.sis_international.main import get_all_projects_mailing_and_recruits_numbers
+from modules.sis_international.main import test
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from modules.greenarrow_bot import get_active_jobs_table_as_list_
 import time
+import modules.sis_international.main as sis
+from pathlib import Path
+import json
 
 # concurrency set up
 cli_display = Display()
@@ -151,12 +155,13 @@ def main_concurrency():
             executor.submit(db_handler.extract_projects_filter_from_internal_database_concurrency, project_name)
             
         elif choice == '6':
+            mm_list_total_length = int(input('How many emails to send out?: '))
             with lock:
                 current_task = task_counter
                 task_counter += 1
 
             print(f"[✓] Task {current_task} - create mm list submitted.")
-            executor.submit(list_.CreateMMList)
+            executor.submit(list_.CreateMMList,mm_list_total_length)
 
         elif choice == '7':
             with lock:
@@ -258,6 +263,18 @@ def main_concurrency():
             executor.submit(bison.restart_campaigns_schedule)
 
         elif choice == '17':
+            start_date = input('start date (format: YYYY-MM-DD): ')
+            end_date = input('end date (format: YYYY-MM-DD): ')
+            campaign_id = input('campaign ID: ')
+
+            with lock:
+                current_task = task_counter
+                task_counter += 1
+
+            print(f"[✓] Task {current_task} - get_full_normalized_stats_by_date submitted.")
+            executor.submit(bison.get_full_normalized_stats_by_date, start_date, end_date, campaign_id)
+
+        elif choice == '18':
             handler = Database()
             emails_to_blocklist = input('Type the emails to block separated by commas:\n')
             with lock:
@@ -268,7 +285,7 @@ def main_concurrency():
             #handler.update_blocked_emails_concurrency(emails_to_blocklist)
             executor.submit(handler.update_blocked_emails_concurrency, emails_to_blocklist)
 
-        elif choice == '18':
+        elif choice == '19':
             project = Project()
             mail_message = input('mail message: ')
 
@@ -286,16 +303,18 @@ def main_concurrency():
             print(f"[✓] Task {current_task} - save project submitted.")
             executor.submit(project.save_mail_message, mail_message)
 
-        elif choice == '19':
+        elif choice == '20':
             with lock:
                 current_task = task_counter
                 task_counter += 1
 
             print(f"[✓] Task {current_task} - graphing send emails vs recruits (not concurrent).")
-            get_all_projects_mailing_and_recruits_numbers()
+            projects_list = input('Type project numbers or names separated by commas: ')
+            projects_list = projects_list.split(',')
+            get_all_projects_mailing_and_recruits_numbers(projects_list)
             # executor.submit(get_all_projects_mailing_and_recruits_numbers) # CHECK: impliment this to be compatible with the concurrent thread
 
-        elif choice == '20':
+        elif choice == '21':
             all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
             all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
 

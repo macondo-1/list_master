@@ -25,7 +25,8 @@ email_passwords_dict = {'nancy@sisinternational.com':'***REMOVED***',
                         'charles@sisinternational.com':'***REMOVED***',
                         'delores@sisinternational.com':'***REMOVED***',
                         'sisfieldwork@sisinternational.com':'***REMOVED***',
-                        'shubha@sisinternational.com':'Challenge2025!'
+                        'shubha@sisinternational.com':'Challenge2025!',
+                        'incentives@sisinternational.com':'***REMOVED***'
                         }
 
 BLAST_MASTER_PATH = const.BLAST_MASTER_PATH

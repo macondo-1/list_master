@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 import datetime
 import time
-
+import traceback
 
 class list_:
     """
@@ -365,7 +365,7 @@ class list_:
             df = list_.FixRecords(df)
             df = list_.CleanBlacklisted(df)
             if dedupe == 'y':
-                df = list_.DedupeFromLog(df)
+                df = list_.DedupeFromLog(df, read_path)
             if export:
                 df = df[['first_name','email']]
             os.remove(read_path)
@@ -415,10 +415,10 @@ class list_:
         df = pd.read_csv(const.LOG_PATH)
         sent_emails = df['Email']
     
-    def CreateMMList():
+    def CreateMMList(mm_list_total_length):
         try:
             # time.sleep(1)
-            mm_list_total_length = int(input('How many emails to send out?: '))
+            # mm_list_total_length = int(input('How many emails to send out?: '))
 
             FROM_NAME = 'Ruth Stanat'
 
@@ -432,14 +432,15 @@ class list_:
             #iterating over each csv
             for file_name in all_filenames:
                 p_number = file_name.name.split('_')[0]
+                print('getting project info...')
                 project_info1 = list_.get_project_info(file_name.name,df_blast_master)
+                print('project info retrieved')
                 MESSAGE = project_info1['Blast Message']
 
                 df = pd.read_csv(file_name)
                 df = df.rename(columns={'first_name':'First_name',
                                         'email':'Email',
                                         })
-
                 df = df.replace({'First_name':'None'},'Colleague')
                 df['message'] = df.apply(lambda row: MESSAGE.format(First_name=row['First_name'], FROM_NAME=FROM_NAME), axis=1)
                 df['project_number'] = p_number
@@ -459,8 +460,10 @@ class list_:
 
             for file_name in all_filenames:
                 os.remove(file_name)
-        except:
+        except Exception as e:
             print('failed creating the MM list, check all file names {0}'.format(file_name))
+            print(e)
+            print(traceback.format_exc())
 
     def DecomposeMMList():
         try:
@@ -520,15 +523,34 @@ class list_:
         for i in all_read_paths:
             os.remove(i)
 
-    def DedupeFromLog(df):
+    def DedupeFromLog(df, file_path, type:str = 'project'):
         """
         Reads the log of MM sent emails and dedupes the new df from this log.
         Need to update to dedupe only from those actually sent emails, not considering failed ones.
+
+        available types:
+        project - dedupes only from records sent to the same project as the prefix in this list
+        all_times - dedupes from the complete log
         """
+
+        file_path = Path(file_path)
+        file_name = file_path.stem
+        project_number = file_name.split('_',1)[0]
+
         read_path = const.LOG_PATH
         log_df = pd.read_csv(read_path)
+    
+        # drops failed and empty status
+        log_df.loc[:,'status'] = log_df[log_df['status'] == 'sent'].loc[:,'status']
+        log_df.dropna(subset='status', inplace=True)
 
+        # if type == 'project':
+        #     log_df['project_number'] = log_df['project_number'].astype(str)
+        #     log_df = log_df[log_df['project_number'] == project_number]
+
+        print('length before dedupe from mm log: ',len(df))
         df = df[~df['email'].isin(log_df['Email'])]
+        print('length after dedupe from mm log: ',len(df))
 
         return df
     
