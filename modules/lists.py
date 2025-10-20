@@ -15,7 +15,16 @@ from pathlib import Path
 import datetime
 import time
 import traceback
+import json
+from modules.utilities import create_new_column_mapper, add_new_column_mapper
 
+today_date = datetime.datetime.now()
+today_date = today_date.strftime('%Y%m%d')
+
+
+
+# CHECK: maybe this list_ class should me a module with functions instead
+# as there are no data related to the class
 class list_:
     """
     This class handles everything related to lists
@@ -41,7 +50,6 @@ class list_:
             else:
                 df = None
                 print("file extension not compatible: {0}".format(file_extension))
-
             return df
 
         except:
@@ -60,26 +68,21 @@ class list_:
             df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
             project_info1 = list_.get_project_info(file_name,df_blast_master)
             project_path = Path(project_info1['template_name'])
-            x = datetime.datetime.now()
-            x = x.strftime('%Y%m%d')
-            destination_filename = projects_dir_path.joinpath(project_path.stem, 'lists', file_path.stem + '_' + x + file_path.suffix)
+            global today_date
+            destination_filename = projects_dir_path.joinpath(project_path.stem, 'lists', file_path.stem + '_' + today_date + file_path.suffix)
 
             directory_path = projects_dir_path.joinpath(project_path.stem, 'lists')
             directory_path.mkdir(parents=True, exist_ok=True)
 
-
             print('destination_filename',destination_filename)
             print('file_path',file_path)
-
-
 
             shutil.copy(file_path, destination_filename)
 
         except Exception as e:
             print(e)
 
-
-
+    #CHECK: split this into two functions, one fixes first_name col and other email col
     def FixRecords(df):
         """
         Replaces None for Colleague on the first_name column and
@@ -110,7 +113,7 @@ class list_:
         except:
             print('failed fixing records')
 
-    
+    # CHECK: apparently not used
     def FixUnknownColumns(df,special_columns = None):
         """
         Receives a raw dataframe from any source and returns a dataframe with
@@ -143,12 +146,72 @@ class list_:
 
         return df
     
+    # CHECK:
+    # there should be a better way to load all columns objects
+    # substitute the if block with a registry
+    # need to be able to keep on saving new mappers
+
+    def fix_columns(df):
+        """
+        Receives a raw dataframe and changes the names of the columns to match those in the database
+        """
+        global today_date
+
+        try:
+            columns = pd.Series(df.columns)
+
+            # open mapper
+            file_path = const.FILE_COLUMNS_DICT_PATH
+            with open(file_path, 'r') as file:
+                mappers_dict = json.load(file)
+
+            list_mapper_name = None
+            for x in mappers_dict['mappers']:
+                mapper_keys = pd.Series(x['map'].keys())
+
+                if columns.isin(mapper_keys).all():
+                    list_mapper_name = x['name']
+                    break
+            
+            if list_mapper_name:
+                # CHECK: the list comprehensions seems weird, maybe i can avoid the past for loop if I include everything in the
+                # list comprehension?
+                list_mapper = [x for x in mappers_dict['mappers'] if x['name'] == list_mapper_name][0]
+                df = df.rename(columns = list_mapper['map'])
+                df = df[list_mapper['map'].values()]
+
+            
+            else:
+                choice = input('\nFound no valid mapper.\nManually clean the list[0]\nor\nCreate a new mapper [1]:\n')
+                if choice == '0':
+                    df = list_.clean_list_manually(df)
+                elif choice == '1':
+                    try:
+                        mapper_values = create_new_column_mapper(columns)
+                        mapper_name = input('New column mapper name: ')
+                        mapper_name = '{}_{}'.format(mapper_name,today_date)
+                        add_new_column_mapper(mapper_name, mapper_values)
+                    except Exception as e:
+                        print('failed creating new column mapper')
+                        print('error message: ', e)
+                else:
+                    print('no valid option was selected, finishing operation...')
+                    return None
+
+            return df
+        
+        except Exception as e:
+            print('failed fixing columns')
+            print('error message: ', e)
+
+
     def FixColumns(df):
         """
         Receives a raw dataframe and changes the names of the columns to match those in the database
         """
         try:
             columns = pd.Series(df.columns)
+
             ru_columns = pd.Series(const.RU_MAPPER.keys())
             apollo_columns = pd.Series(const.APOLLO_MAPPER.keys())
             apollo_columns_1 = pd.Series(const.APOLLO_MAPPER_1.keys())
@@ -188,6 +251,9 @@ class list_:
         except:
             print('failed fixing columns')
     
+    # CHECK: 
+    # might be faster to get blocked rows with a with open statement
+    # check domains against substring
     def CleanBlacklisted(df):
         filename_in = const.BLACKLIST_PATH
         blocked_rows = pd.read_csv(filename_in, on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
@@ -197,6 +263,9 @@ class list_:
         df = df[~df['email'].apply(lambda x: any(blocked_substring in x for blocked_substring in blocked_rows['email']))]
         return df
     
+    # CHECK: 
+    # the available columns might be printed with words spaced with "_" so they can be selected using double click
+    # re-factor this function to be only the workflow by calling other functions
     def clean_list_manually(df):
 
         print('Available columns: \n\n{0}\n'.format(df.columns.to_list()))
@@ -240,6 +309,7 @@ class list_:
 
         return df
 
+    # CHECK:  the previous function is named the same, maybe this one is deprecated
     def CleanListManually():
         all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
         all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
@@ -302,6 +372,10 @@ class list_:
                 print('failed files:')
                 print(failed_files)
 
+    # The following functions are very similar, maybe merge into one:
+    # CleanList
+    # CleanLists
+    # clean_lists_concurrency
 
     def CleanList():
         read_path = input('\nType the list file name to clean: ')
@@ -313,7 +387,6 @@ class list_:
         df.to_csv(read_path, index=False)
 
         return df
-
 
     def CleanLists(save_to_project_dir):
         try:
@@ -392,6 +465,7 @@ class list_:
 
         return project_info
     
+    # CHECK: this migt not be used anymore
     def GetMMDict(mm_len):
         today = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
         tomorrow = today + datetime.timedelta(1)
@@ -411,6 +485,7 @@ class list_:
 
         return projects_dict
 
+    # CHECK: is this ised? it doesnt even return anything
     def CheckAgainstAlreadySentEmails():
         df = pd.read_csv(const.LOG_PATH)
         sent_emails = df['Email']
@@ -482,11 +557,11 @@ class list_:
             error_message = 'failed decomposing mm list'
             print(error_message)
 
+    # CHECK: deprecated as we don't pay for these services anymore
     def GetURLsFromSnoToHunt():
         max_chunk = 25000
 
         all_file_names = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
-
 
         combined_csv_data = pd.concat([pd.read_csv(file_name,usecols=['url']) for file_name in all_file_names])
 
@@ -506,7 +581,6 @@ class list_:
                 print(f"you copied {all_file_names} to the clipboard")
                 input('Press enter to continue...\n')
 
-
         else:
             combined_csv_data.to_clipboard(sep=',', header=False, index=False)
             print(f"you copied {len(combined_csv_data)} URL's to the clipboard")
@@ -514,6 +588,7 @@ class list_:
             print(f"you copied {all_file_names} to the clipboard")
             input('Press enter to continue...\n')
 
+    # CHECK: could add try except block
     def concat_lists():
         all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
         combined_csv_data = pd.concat([pd.read_csv(f,low_memory=False) for f in all_read_paths])
@@ -523,6 +598,7 @@ class list_:
         for i in all_read_paths:
             os.remove(i)
 
+    # CHECK: implement the use of the type variable to know if need to dedupe from previous mms in general or per project, maybe add per date
     def DedupeFromLog(df, file_path, type:str = 'project'):
         """
         Reads the log of MM sent emails and dedupes the new df from this log.
@@ -554,6 +630,7 @@ class list_:
 
         return df
     
+    # CHECK: add stats to these types of tools over files and see how they can be sometimes printed or not
     def Deduper():
         """
         Dedupes list A from list B
@@ -587,6 +664,7 @@ class list_:
         df_deduped = df_a[~df_a['email'].isin(df_b['email'])]
         df_deduped.to_csv(const.PROCESSING_FOLDER / 'deduped.csv',index=False)
 
+    # CHECK: what is the email bison db?
     def clean_against_email_bison_db():
         """
         Deletes records that were uploaded to email bison
@@ -617,6 +695,7 @@ class list_:
     def DNSCheck():
         pass
 
+    # this one could be useful for another api processes that might need smaller chunck per api call
     def divide_list():
         """Reads a csv and divides it into the desired chunks"""
         
@@ -668,6 +747,14 @@ class list_:
                 initial_chunk += lenght_per_chunk
                 final_chunk += lenght_per_chunk
                 chunk_number += 1
+
+# CHECK: past idea was to make this "list" class a module with functions but check if this info realted to the instance
+# is valued accross all functions
+
+# que sea una clase puede ser bueno para tomar la info del nombre del archivo 
+# y de ahi toda la info disponible ya sea del excel o de algun json
+
+# también es bueno para solo seguir agregando métodos a la clase
 
 class NewList:
     def __init__(self, file_path):
