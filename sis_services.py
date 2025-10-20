@@ -28,6 +28,7 @@ import time
 import modules.sis_international.main as sis
 from pathlib import Path
 import json
+from modules.utilities import *
 
 # concurrency set up
 cli_display = Display()
@@ -101,7 +102,8 @@ def main_concurrency():
             for read_path in all_read_paths:
                 # Collect user input first
                 df = list_.ReadList(read_path)
-                df = list_.FixColumns(df)
+                # df = list_.FixColumns(df)
+                df = list_.fix_columns(df)
                 # Submit the task to the thread pool after input
                 
                 with lock:
