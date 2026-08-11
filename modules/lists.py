@@ -1,5 +1,4 @@
 import pandas as pd
-# import modules.constants as const
 import modules.constants as const
 import re
 import csv
@@ -18,8 +17,9 @@ import traceback
 import json
 from modules.utilities import create_new_column_mapper, add_new_column_mapper
 
-today_date = datetime.datetime.now()
-today_date = today_date.strftime('%Y%m%d')
+
+today_date_ = datetime.datetime.now()
+today_date = today_date_.strftime('%Y%m%d')
 
 
 
@@ -146,11 +146,6 @@ class list_:
 
         return df
     
-    # CHECK:
-    # there should be a better way to load all columns objects
-    # substitute the if block with a registry
-    # need to be able to keep on saving new mappers
-
     def fix_columns(df):
         """
         Receives a raw dataframe and changes the names of the columns to match those in the database
@@ -176,6 +171,7 @@ class list_:
             if list_mapper_name:
                 # CHECK: the list comprehensions seems weird, maybe i can avoid the past for loop if I include everything in the
                 # list comprehension?
+                print(list_mapper_name)
                 list_mapper = [x for x in mappers_dict['mappers'] if x['name'] == list_mapper_name][0]
                 df = df.rename(columns = list_mapper['map'])
                 df = df[list_mapper['map'].values()]
@@ -204,7 +200,7 @@ class list_:
             print('failed fixing columns')
             print('error message: ', e)
 
-
+    # Deprecated - substituted for fix_columns
     def FixColumns(df):
         """
         Receives a raw dataframe and changes the names of the columns to match those in the database
@@ -251,16 +247,16 @@ class list_:
         except:
             print('failed fixing columns')
     
-    # CHECK: 
-    # might be faster to get blocked rows with a with open statement
-    # check domains against substring
     def CleanBlacklisted(df):
+        """
+        Reads the blacklist file
+        deletes any substring matches from the dataframe
+        """
         filename_in = const.BLACKLIST_PATH
-        blocked_rows = pd.read_csv(filename_in, on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
-        blocked_rows = blocked_rows.rename(columns={0:'email'})
-        blocked_rows['email'] = blocked_rows['email'].str.lower()
-        df = df[~df['email'].isin(blocked_rows['email'])] #this is not ok, this tests for exact matches but there are instances were complete domains are blocked, we need to check against substrings
-        df = df[~df['email'].apply(lambda x: any(blocked_substring in x for blocked_substring in blocked_rows['email']))]
+        with open(filename_in, 'r') as file:
+            blocked_rows = [line.strip().lower() for line in file.readlines()]
+        pattern = re.compile('|'.join(blocked_rows))
+        df = df[~df.email.str.contains(pattern)]
         return df
     
     # CHECK: 
@@ -309,7 +305,7 @@ class list_:
 
         return df
 
-    # CHECK:  the previous function is named the same, maybe this one is deprecated
+    # CHECK: the previous function is named the same, maybe this one is deprecated
     def CleanListManually():
         all_read_paths = [i for i in const.PROCESSING_FOLDER.glob('*.csv')]
         all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
@@ -428,19 +424,18 @@ class list_:
             error_message = 'failed cleaning lists'
             print(error_message)
 
-    def clean_lists_concurrency(df, read_path, save_to_project_dir, export, dedupe):
+    def clean_lists_concurrency(df, read_path, save_to_project_dir, export, dedupe, not_sent_in, gmail):
         try:
             if save_to_project_dir == 'y':
                 list_.save_raw_file_to_project_dir(read_path)
-            columns = list(df.columns)
-            if 'quality' in columns:
-                df = df[df['quality'] == 'good']
             df = list_.FixRecords(df)
             df = list_.CleanBlacklisted(df)
             if dedupe == 'y':
-                df = list_.DedupeFromLog(df, read_path)
+                df = list_.DedupeFromLog(df, read_path, not_sent_in)
             if export:
                 df = df[['first_name','email']]
+            if gmail == 'y':
+                df = df[~df['email'].str.contains('gmail')]
             os.remove(read_path)
 
             out_name = read_path.stem
@@ -453,15 +448,29 @@ class list_:
             print(error_message)
             print(e)
 
+    # CHECK: this one is not directly related to the list so it should be maybe in utilities?
+    # oh but it might be related since it uses the project number to find the information
     def get_project_info(file_name, df_blastmaster):
         try:
             df_blastmaster1 = df_blastmaster.astype({'Unnamed: 1': 'str'})
-            df_blastmaster1['Unnamed: 1'] = df_blastmaster1['Unnamed: 1'].apply(lambda x: x.split('.')[0])
+            df_blastmaster1.loc[:, 'Unnamed: 1'] = df_blastmaster1['Unnamed: 1'].apply(lambda x: x.split('.')[0])
             df_blastmaster1 = df_blastmaster1.set_index('Unnamed: 1')
             p_number = str(file_name.split('_')[0])
             project_info = df_blastmaster1.loc[p_number]
-        except:
-            print('Error getting project information for {0}'.format(file_name))
+
+            # .loc returns a DataFrame instead of a Series when the project number
+            # is duplicated in blast_master_good_final.xlsx. Fail loudly here instead
+            # of letting a Series silently flow into MESSAGE.format() downstream.
+            if isinstance(project_info, pd.DataFrame):
+                templates = ', '.join(project_info['template_name'].astype(str))
+                raise ValueError(
+                    "project number {0} matches {1} rows in blast_master_good_final.xlsx "
+                    "(template_name: {2}) -- remove/merge the duplicate row before re-running"
+                    .format(p_number, len(project_info), templates)
+                )
+        except Exception as e:
+            print('Error getting project information for {0}: {1}'.format(file_name, e))
+            raise
 
         return project_info
     
@@ -485,16 +494,23 @@ class list_:
 
         return projects_dict
 
-    # CHECK: is this ised? it doesnt even return anything
-    def CheckAgainstAlreadySentEmails():
-        df = pd.read_csv(const.LOG_PATH)
-        sent_emails = df['Email']
+    # # CHECK: is this ised? it doesnt even return anything
+    # def CheckAgainstAlreadySentEmails():
+    #     df = pd.read_csv(const.LOG_PATH)
+    #     sent_emails = df['Email']
     
-    def CreateMMList(mm_list_total_length):
-        try:
-            # time.sleep(1)
-            # mm_list_total_length = int(input('How many emails to send out?: '))
 
+    # CHECK: why not concat the footer to the mail message here?
+    # take out the for loop to another function
+    # might shouldn't be here, utilities? where?
+    def CreateMMList(mm_list_total_length):
+        """
+        Reads from all files in directory
+        creates a file combining all files
+        only saves a certain amount per project total_q/q_of_projects
+        saves the rest of the records per project in a pending directory
+        """
+        try:
             FROM_NAME = 'Ruth Stanat'
 
             #reading file names
@@ -504,12 +520,11 @@ class list_:
             df_blast_master = pd.read_excel(const.BLAST_MASTER_PATH)
             #df_blast_master = df_blast_master.set_index('Unnamed: 1')
 
-            #iterating over each csv
+            # Iterating over each csv and creating mail message per record and
+            # creating project number column (look up where is this needed?)
             for file_name in all_filenames:
                 p_number = file_name.name.split('_')[0]
-                print('getting project info...')
                 project_info1 = list_.get_project_info(file_name.name,df_blast_master)
-                print('project info retrieved')
                 MESSAGE = project_info1['Blast Message']
 
                 df = pd.read_csv(file_name)
@@ -517,11 +532,23 @@ class list_:
                                         'email':'Email',
                                         })
                 df = df.replace({'First_name':'None'},'Colleague')
+                df = df.replace({'First_name':np.nan},'Colleague')
                 df['message'] = df.apply(lambda row: MESSAGE.format(First_name=row['First_name'], FROM_NAME=FROM_NAME), axis=1)
                 df['project_number'] = p_number
-                print(file_name)
-                df[:records_per_project].to_csv(file_name, index = False)
-                df[records_per_project:].to_csv(const.PENDING_MAILING_PATH.joinpath(file_name.name), index = False)
+
+                # CHECK: this 0 value is hardcoded, should exist a better way
+                if mm_list_total_length == 0:
+                    df.to_csv(file_name, index = False)
+                else:
+                    # Saving csv files
+                    df[:records_per_project].to_csv(file_name, index = False)
+
+                    # CHECK: inspect the df, if empty, do not save it
+                    # check if the destination dir has a file with the same name, if so merge them
+                    # if file_name in iterdir():
+                    #   concat df with saved file
+                    #   save concatenated file
+                    df[records_per_project:].to_csv(const.PENDING_MAILING_PATH.joinpath(file_name.name), index = False)
                 
             
             concatenated_df = pd.concat([pd.read_csv(f,low_memory=False) for f in all_filenames])
@@ -530,16 +557,19 @@ class list_:
             
             filename_out = const.MAILING_PATH.joinpath('mm_list.csv')
             concatenated_df.to_csv(filename_out, index = False)
+
             mm_list_len = len(concatenated_df)
             print("\nnew mm list length: {mm_list_len}\n".format(mm_list_len=mm_list_len))
 
             for file_name in all_filenames:
                 os.remove(file_name)
+
         except Exception as e:
             print('failed creating the MM list, check all file names {0}'.format(file_name))
             print(e)
             print(traceback.format_exc())
 
+    # CHECK: might shouldn't be here, utilities? where?
     def DecomposeMMList():
         try:
             filename = const.MAILING_PATH.joinpath('mm_list.csv')
@@ -553,9 +583,10 @@ class list_:
                 df_out.to_csv(filename_out, index=False)
 
             os.remove(filename)
-        except:
+        except Exception as e:
             error_message = 'failed decomposing mm list'
             print(error_message)
+            print('error message: ', e)
 
     # CHECK: deprecated as we don't pay for these services anymore
     def GetURLsFromSnoToHunt():
@@ -598,16 +629,12 @@ class list_:
         for i in all_read_paths:
             os.remove(i)
 
-    # CHECK: implement the use of the type variable to know if need to dedupe from previous mms in general or per project, maybe add per date
-    def DedupeFromLog(df, file_path, type:str = 'project'):
+    def DedupeFromLog(df, file_path, not_sent_in: int = 30):
         """
         Reads the log of MM sent emails and dedupes the new df from this log.
-        Need to update to dedupe only from those actually sent emails, not considering failed ones.
-
-        available types:
-        project - dedupes only from records sent to the same project as the prefix in this list
-        all_times - dedupes from the complete log
         """
+
+        global today_date
 
         file_path = Path(file_path)
         file_name = file_path.stem
@@ -615,14 +642,15 @@ class list_:
 
         read_path = const.LOG_PATH
         log_df = pd.read_csv(read_path)
+
+        # Filtering by date
+        log_df['timestamp'] = pd.to_datetime(log_df['timestamp'])
+        not_sent_in = today_date_ - datetime.timedelta(not_sent_in)
+        log_df = log_df[log_df['timestamp'] > pd.to_datetime(not_sent_in)]
     
         # drops failed and empty status
         log_df.loc[:,'status'] = log_df[log_df['status'] == 'sent'].loc[:,'status']
         log_df.dropna(subset='status', inplace=True)
-
-        # if type == 'project':
-        #     log_df['project_number'] = log_df['project_number'].astype(str)
-        #     log_df = log_df[log_df['project_number'] == project_number]
 
         print('length before dedupe from mm log: ',len(df))
         df = df[~df['email'].isin(log_df['Email'])]
@@ -677,24 +705,6 @@ class list_:
             df = pd.read_csv(x)
             df[~df.email.isin(email_bison_records_df.email)].to_csv(x, index=False)
 
-    def UploadToGA():
-        pass
-
-    def SendListGA():
-        pass
-
-    def SendListMM():
-        pass
-
-    def SendListBCC():
-        pass
-
-    def ThrottleList():
-        pass
-
-    def DNSCheck():
-        pass
-
     # this one could be useful for another api processes that might need smaller chunck per api call
     def divide_list():
         """Reads a csv and divides it into the desired chunks"""
@@ -704,7 +714,7 @@ class list_:
         all_read_paths += [i for i in const.PROCESSING_FOLDER.glob('*.xlsx')]
 
         for read_path in all_read_paths:
-            df = pd.read_csv(read_path)
+            df = pd.read_csv(read_path, low_memory=False)
             total_lenght = len(df)
             lenght_per_chunk = int(total_lenght/chunks)
             initial_chunk = 0
@@ -748,7 +758,7 @@ class list_:
                 final_chunk += lenght_per_chunk
                 chunk_number += 1
 
-# CHECK: past idea was to make this "list" class a module with functions but check if this info realted to the instance
+# CHECK: past idea was to make this "list" class a module with functions but check if this info related to the instance
 # is valued accross all functions
 
 # que sea una clase puede ser bueno para tomar la info del nombre del archivo 

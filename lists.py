@@ -357,12 +357,24 @@ class list_:
     def get_project_info(file_name, df_blastmaster):
         try:
             df_blastmaster1 = df_blastmaster.astype({'Unnamed: 1': 'str'})
-            df_blastmaster1['Unnamed: 1'] = df_blastmaster1['Unnamed: 1'].apply(lambda x: x.split('.')[0])
+            df_blastmaster1.loc[:, 'Unnamed: 1'] = df_blastmaster1['Unnamed: 1'].apply(lambda x: x.split('.')[0])
             df_blastmaster1 = df_blastmaster1.set_index('Unnamed: 1')
             p_number = str(file_name.split('_')[0])
             project_info = df_blastmaster1.loc[p_number]
-        except:
-            print('Error getting project information for {0}'.format(file_name))
+
+            # .loc returns a DataFrame instead of a Series when the project number
+            # is duplicated in blast_master_good_final.xlsx. Fail loudly here instead
+            # of letting a Series silently flow into MESSAGE.format() downstream.
+            if isinstance(project_info, pd.DataFrame):
+                templates = ', '.join(project_info['template_name'].astype(str))
+                raise ValueError(
+                    "project number {0} matches {1} rows in blast_master_good_final.xlsx "
+                    "(template_name: {2}) -- remove/merge the duplicate row before re-running"
+                    .format(p_number, len(project_info), templates)
+                )
+        except Exception as e:
+            print('Error getting project information for {0}: {1}'.format(file_name, e))
+            raise
 
         return project_info
     
