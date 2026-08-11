@@ -8,6 +8,7 @@ import glob
 import os
 import numpy as np
 import constants as const
+import modules.constants as mod_const
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -17,15 +18,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
 
-
-email_passwords_dict = {'nancy@sisinternational.com':'***REMOVED***',
-                        'john@sisinternational.com':'***REMOVED***',
-                        'anna@sisinternational.com':'***REMOVED***',
-                        'charles@sisinternational.com':'***REMOVED***',
-                        'delores@sisinternational.com':'***REMOVED***',
-                        'sisfieldwork@sisinternational.com':'***REMOVED***'
-                        }
+# Real passwords live in modules/constants.py (gitignored, not committed) as
+# mod_const.EMAIL_PASSWORDS -- this legacy script has no constants.py of its
+# own, so it shares the one source of truth rather than duplicating secrets.
 
 BLAST_MASTER_PATH = const.BLAST_MASTER_PATH
 
@@ -91,7 +88,9 @@ def create_mail_msg_object(message, FROM_NAME, FROM_EMAIL, to_email):
     return msg
 
 def initialize_selenium():
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    options = Options()
+    options.add_argument("--headless=new")  # Recommended for Chrome 109+
+    driver = webdriver.Chrome(options=options, service=Service(ChromeDriverManager().install()))
     driver.implicitly_wait(6)
 
     return driver
@@ -193,7 +192,7 @@ def send_emails_selenium(cc):
     slice_size = int(input("Select how many emails you want to send out: "))
     list_filename = const.MAILING_PATH.joinpath('mm_list.csv')
 
-    PASSWORD = email_passwords_dict[FROM_EMAIL]
+    PASSWORD = mod_const.EMAIL_PASSWORDS[FROM_EMAIL]
 
     mailing_list = fixing_df_bis(list_filename, slice_size) # This function reads a csv as a dataframe and then turns it into a dict
     new_df = pd.DataFrame(mailing_list)                     # which seems unecessary if I'm turning it into a DF back again here

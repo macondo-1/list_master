@@ -8,6 +8,7 @@ import glob
 import os
 import numpy as np
 import modules.constants as const
+import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -17,17 +18,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.options import Options
 
-
-email_passwords_dict = {'nancy@sisinternational.com':'***REMOVED***',
-                        'john@sisinternational.com':'***REMOVED***',
-                        'anna@sisinternational.com':'***REMOVED***',
-                        'charles@sisinternational.com':'***REMOVED***',
-                        'delores@sisinternational.com':'***REMOVED***',
-                        'sisfieldwork@sisinternational.com':'***REMOVED***',
-                        'shubha@sisinternational.com':'Challenge2025!',
-                        'incentives@sisinternational.com':'***REMOVED***'
-                        }
+# Real passwords live in modules/constants.py (gitignored, not committed) as
+# const.EMAIL_PASSWORDS -- keep it that way, this file must stay commit-safe.
 
 BLAST_MASTER_PATH = const.BLAST_MASTER_PATH
 
@@ -93,7 +87,16 @@ def create_mail_msg_object(message, FROM_NAME, FROM_EMAIL, to_email):
     return msg
 
 def initialize_selenium():
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+    # service=Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(options=options) #, service=service
     driver.implicitly_wait(6)
 
     return driver
@@ -107,11 +110,18 @@ def signin_selenium(driver, FROM_EMAIL, PASSWORD):
     sign_in = driver.find_element(By.CLASS_NAME,'signinbutton')
     sign_in.click()
 
-def send_email_selenium(to_email, message, driver, cc):
+def send_email_selenium(to_email, message, driver, cc, reply_to='', attachment_paths=None):
 
 
     wait = WebDriverWait(driver, 80)
     # Creating new mail
+
+    # for debugging headless mode
+    # driver.save_screenshot("debug_headless.png")
+    # print(driver.title)
+    # print(driver.current_url)
+    # print(driver.page_source[:5000])
+
     button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@title="Write a new message (N)"]')))
     button.click()
 
@@ -130,8 +140,17 @@ def send_email_selenium(to_email, message, driver, cc):
         time.sleep(5)
         input_field.send_keys(Keys.RETURN)
 
+    if reply_to:
+        # Writing Reply-To
+        input_field = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="Reply-to"]')))
+        input_field.send_keys(reply_to)
+        input_field.send_keys(Keys.RETURN)
+        time.sleep(2)
+        input_field.send_keys(Keys.RETURN)
+
     # Writing SUBJECT of the email
     subject_field = wait.until(EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="Subject," or @placeholder="Add a subject"]')))
+    time.sleep(1)
     subject_field.send_keys(message.split('\n',1)[0])
 
     message_body = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@aria-label="Message body"]')))
@@ -157,12 +176,23 @@ def send_email_selenium(to_email, message, driver, cc):
     # Writing message body
     with open(const.BCC_FOOTER_PATH, 'r', encoding='utf-8') as file:
         footer = file.read()
-    message_1 = message.split('\n',1)[1] + '\n\n' + footer
+    message_1 = message.split('\n',1)[1] # + '\n\n' + footer
     message_body.send_keys(message_1)
+
+    # Attaching files
+    if attachment_paths:
+        for path in attachment_paths:
+            attach_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@title="Attach"]')))
+            attach_button.click()
+            time.sleep(1)
+            file_input = wait.until(EC.presence_of_element_located((By.XPATH, '//input[@type="file"]')))
+            driver.execute_script("arguments[0].style.display = 'block';", file_input)
+            file_input.send_keys(path)
+            time.sleep(3)
 
     # Click send
     button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Send"]')))
-    #button = driver.find_element(By.XPATH, '//button[@aria-label="Send"]')
+    # button = driver.find_element(By.XPATH, '//button[@aria-label="Send"]')
     button.click()
 
     time.sleep(random.randint(2, 5))
@@ -202,7 +232,7 @@ def send_emails_selenium(cc):
     slice_size = int(input("Select how many emails you want to send out: "))
     list_filename = const.MAILING_PATH.joinpath('mm_list.csv')
 
-    PASSWORD = email_passwords_dict[FROM_EMAIL]
+    PASSWORD = const.EMAIL_PASSWORDS[FROM_EMAIL]
 
     mailing_list = fixing_df_bis(list_filename, slice_size) # This function reads a csv as a dataframe and then turns it into a dict
     new_df = pd.DataFrame(mailing_list)                     # which seems unecessary if I'm turning it into a DF back again here
@@ -230,6 +260,7 @@ def send_emails_selenium(cc):
         except Exception as error:
             print('\nfailed sending email to: {email}'.format(email=mail['Email']))
             print("An exception occurred:", error) # An exception occurred: division by zero
+            traceback.print_exc()
             driver.refresh()
 
             df_index = new_df[new_df['Email'] == mail['Email']].index
@@ -248,59 +279,84 @@ def send_emails_selenium(cc):
     driver.close()
     driver.quit()
 
-def send_emails_selenium_concurrency(cc, FROM_EMAIL, slice_size):
+def send_emails_selenium_concurrency(cc, FROM_EMAIL, slice_size, reply_to='', attachment_paths=None):
     today = datetime.date.today()
-    #FROM_EMAIL = input("\nAvailable emails:\n\nnancy@sisinternational.com\nanna@sisinternational.com\njohn@sisinternational.com\ncharles@sisinternational.com\n\nSelect email: ")
-    #slice_size = int(input("Select how many emails you want to send out: "))
     list_filename = const.MAILING_PATH.joinpath('mm_list.csv')
 
-    PASSWORD = email_passwords_dict[FROM_EMAIL]
+    print('[BCC] step 1/5 - looking up password for {0}...'.format(FROM_EMAIL))
+    if FROM_EMAIL not in const.EMAIL_PASSWORDS:
+        raise ValueError(
+            "'{0}' has no entry in const.EMAIL_PASSWORDS (modules/constants.py) "
+            "-- check for typos in the email you selected, or add the account's "
+            "password to that dict".format(FROM_EMAIL)
+        )
+    PASSWORD = const.EMAIL_PASSWORDS[FROM_EMAIL]
 
+    print('[BCC] step 2/5 - reading mailing list from {0}...'.format(list_filename))
+    if not list_filename.exists():
+        raise FileNotFoundError(
+            "{0} doesn't exist -- run 'Create MM list' first".format(list_filename)
+        )
     mailing_list = fixing_df_bis(list_filename, slice_size) # This function reads a csv as a dataframe and then turns it into a dict
+    if not mailing_list:
+        raise ValueError('{0} has no records left to send -- nothing to do'.format(list_filename))
+    print('[BCC] {0} email(s) loaded for this batch'.format(len(mailing_list)))
+
     new_df = pd.DataFrame(mailing_list)                     # which seems unecessary if I'm turning it into a DF back again here
     new_df['timestamp'] = today
 
+    print('[BCC] step 3/5 - launching browser...')
+    driver = initialize_selenium()
+
+    print('[BCC] step 4/5 - signing in to OWA as {0}...'.format(FROM_EMAIL))
     try:
-        driver = initialize_selenium()
         signin_selenium(driver, FROM_EMAIL, PASSWORD)
         time.sleep(2)
-    except:
-        print('failed loging into selenium')
+    except Exception as error:
+        driver.quit()
+        raise RuntimeError('failed signing in to OWA as {0}: {1}'.format(FROM_EMAIL, error)) from error
+    print('[BCC] signed in successfully')
 
+    print('[BCC] step 5/5 - sending {0} email(s)...'.format(len(mailing_list)))
     n = 1
     for mail in mailing_list:
         try:
-            send_email_selenium(mail['Email'], mail['message'], driver, cc)
+            send_email_selenium(mail['Email'], mail['message'], driver, cc, reply_to, attachment_paths)
             message = '\nemail sent to {email}\n{total_sent} sent emails in total'.format(email=mail['Email'], total_sent=n)
             print(message)
             n += 1
 
             df_index = new_df[new_df['Email'] == mail['Email']].index
             new_df.loc[df_index,'status'] = 'sent'
-            
+
 
         except Exception as error:
             print('\nfailed sending email to: {email}'.format(email=mail['Email']))
             print("An exception occurred:", error) # An exception occurred: division by zero
-            driver.refresh()
+            traceback.print_exc()
+            try:
+                driver.refresh()
+            except Exception as refresh_error:
+                print('[BCC] failed refreshing the browser after the error above: {0}'.format(refresh_error))
 
             df_index = new_df[new_df['Email'] == mail['Email']].index
             new_df.loc[df_index,'status'] = 'failed'
 
         except KeyboardInterrupt:
             new_df['status'] = new_df['status'].replace(np.nan,'failed')
+            print('[BCC] interrupted -- saving progress to the log before exiting...')
             update_log(new_df)
             print('failed emails saved')
-
-        except UnboundLocalError:
-            print('update drivers json to continue')
+            raise
 
     #condition = new_df['status'] == 'failed'
-    print('updating log...')
+    print('[BCC] updating log...')
     update_log(new_df)
-    print('log updated')
+    print('[BCC] log updated')
     driver.close()
     driver.quit()
+    sent_count = int((new_df['status'] == 'sent').sum())
+    print('[BCC] done -- {0}/{1} sent successfully'.format(sent_count, len(mailing_list)))
 
 """
 def send_emails_smtp(need_to_fix_list):
