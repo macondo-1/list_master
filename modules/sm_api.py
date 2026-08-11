@@ -5,20 +5,22 @@ import datetime
 import modules.constants as const
 
 # SM Permissions: view collectors and view surveys
+# Real tokens live in modules/constants.py (gitignored, not committed) as
+# const.SM_API_TOKENS -- keep it that way, this file must stay commit-safe.
 headers = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(const.SM_API_TOKENS[0]),
     'Content-Type' : 'application/json'
     }
 headers_1 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(const.SM_API_TOKENS[1]),
     'Content-Type' : 'application/json'
     }
 headers_2 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(const.SM_API_TOKENS[2]),
     'Content-Type' : 'application/json'
     }
 headers_3 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(const.SM_API_TOKENS[3]),
     'Content-Type' : 'application/json'
     }
 

@@ -3,23 +3,27 @@ import requests, json, datetime, time
 import pandas as pd
 import datetime
 import constants as const
+import modules.constants as mod_const
 
 # SM Permissions: view collectors and view surveys
+# Real tokens live in modules/constants.py (gitignored, not committed) as
+# mod_const.SM_API_TOKENS -- this legacy script has no constants.py of its
+# own, so it shares the one source of truth rather than duplicating secrets.
 headers = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(mod_const.SM_API_TOKENS[0]),
     'Content-Type' : 'application/json'
     }
 headers_1 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(mod_const.SM_API_TOKENS[1]),
     'Content-Type' : 'application/json'
     }
 headers_2 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(mod_const.SM_API_TOKENS[2]),
     'Content-Type' : 'application/json'
     }
 
 headers_3 = {
-    'Authorization': "bearer ***REMOVED***",
+    'Authorization': "bearer {0}".format(mod_const.SM_API_TOKENS[3]),
     'Content-Type' : 'application/json'
     }
 
