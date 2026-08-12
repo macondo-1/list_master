@@ -1,0 +1,32 @@
+{
+    "mappers": [
+        {
+            "name": "apollo_test",
+            "map": {
+                "First Name": "first_name",
+                "Email": "email"
+            }
+        },
+        {
+            "name": "hunter_test",
+            "map": {
+                "Full Name": "first_name",
+                "Email Address": "email"
+            }
+        },
+        {
+            "name": "ru_test",
+            "map": {
+                "Name": "first_name",
+                "E-mail": "email"
+            }
+        },
+        {
+            "name": "snov_test",
+            "map": {
+                "Contact Name": "first_name",
+                "Contact Email": "email"
+            }
+        }
+    ]
+}

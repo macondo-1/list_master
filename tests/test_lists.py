@@ -77,3 +77,20 @@ def test_fixrecords_well_formed_row_passes_through_unchanged():
     result = list_.FixRecords(df)
     assert result['first_name'].tolist() == ['Mary']
     assert result['email'].tolist() == ['mary@example.com']
+
+
+def test_fix_columns_renames_and_reorders_matching_source():
+    # Columns deliberately out of order vs. the mapper's key order, to
+    # prove fix_columns reorders to match the mapper's value order too.
+    df = pd.DataFrame({'Email': ['JOHN@X.COM'], 'First Name': ['John Doe']})
+    result = list_.fix_columns(df)
+    assert result.columns.tolist() == ['first_name', 'email']
+    assert result['first_name'].tolist() == ['John Doe']
+    assert result['email'].tolist() == ['JOHN@X.COM']
+
+
+def test_fix_columns_returns_none_when_no_mapper_matches_and_choice_invalid(monkeypatch):
+    df = pd.DataFrame({'Weird Column': ['x'], 'Another Col': ['y']})
+    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: 'nope')
+    result = list_.fix_columns(df)
+    assert result is None
