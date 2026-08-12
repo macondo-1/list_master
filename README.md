@@ -88,7 +88,24 @@ interactive menu:
 [Q]  Quit
 ```
 
-There is no formal test suite — testing is done interactively in `notes.ipynb`.
+Day-to-day exploratory testing still happens interactively in `notes.ipynb`.
+Automated regression tests live under `tests/` — see **Testing** below.
+
+## Testing
+
+```bash
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+pytest
+```
+
+The suite covers the list-cleaning and column-mapper logic in `modules/lists.py`
+and `modules/utilities.py` — the deterministic parts of the codebase. It does
+not cover the SQLite database layer, the Selenium-driven bots (GreenArrow/OWA),
+SMTP sending, or the Email Bison/SurveyMonkey integrations. A root-level
+`conftest.py` substitutes a fake `modules.constants` module (see
+`tests/fixtures/fake_constants.py`) so the suite runs without the real,
+gitignored `modules/constants.py`.
 
 ## Architecture
 

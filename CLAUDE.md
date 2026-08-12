@@ -20,7 +20,11 @@ python -m modules.database
 python -m modules.greenarrow_bot
 ```
 
-There is no formal test suite. Testing is done interactively in `notes.ipynb`.
+Automated regression tests for the list-cleaning/mapper logic in
+`modules/lists.py` and `modules/utilities.py` live under `tests/` — run with
+`pytest` after `pip install -r requirements-dev.txt` (see README's Testing
+section). Day-to-day exploratory testing of everything else still happens
+interactively in `notes.ipynb`.
 
 ## Architecture
 
