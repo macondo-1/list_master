@@ -183,7 +183,7 @@ class Database:
 
         blocked_rows = pd.read_csv(const.BLACKLIST_PATH , on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
         blocked_rows = blocked_rows.rename(columns={0:'email'})
-        blocked_rows['email'] = blocked_rows['email'].str.lower()
+        blocked_rows.loc[:, 'email'] = blocked_rows['email'].str.lower()
 
         emails_to_blocklist = input('Type the emails to block separated by commas:\n')
         emails_to_blocklist = emails_to_blocklist.split(',')
@@ -193,13 +193,17 @@ class Database:
         ## updating from file
         # emails_to_blocklist = pd.read_csv('/Users/albertoruizcajiga/Library/CloudStorage/GoogleDrive-beautifulday874@gmail.com/My Drive/Information_Technology/blacklist_emails.txt', header=None)
         # emails_to_blocklist = {'email':emails_to_blocklist[0].to_list()}
-        
+
         emails_to_blocklist = pd.DataFrame(emails_to_blocklist)
 
         new_block_list = pd.concat([blocked_rows,emails_to_blocklist])
         new_block_list = new_block_list.drop_duplicates(subset='email')
 
-        new_block_list.to_csv(const.BLACKLIST_PATH, header=False, index=False, sep='\n')
+        # Single-column file: no delimiter is ever written between fields, so
+        # this just needs the default separator. `sep='\n'` used to be an
+        # (unnecessary) way to make that explicit, but Python's csv module
+        # now rejects newline as a delimiter value outright.
+        new_block_list.to_csv(const.BLACKLIST_PATH, header=False, index=False)
 
         new_records_df = new_block_list[~new_block_list['email'].isin(blocked_rows['email'])]
         new_records_len = len(new_records_df)
@@ -212,7 +216,7 @@ class Database:
 
         blocked_rows = pd.read_csv(const.BLACKLIST_PATH , on_bad_lines='skip', header=None, quoting=csv.QUOTE_NONE)
         blocked_rows = blocked_rows.rename(columns={0:'email'})
-        blocked_rows['email'] = blocked_rows['email'].str.lower()
+        blocked_rows.loc[:, 'email'] = blocked_rows['email'].str.lower()
 
         emails_to_blocklist = emails_to_blocklist.split(',')
         emails_to_blocklist = [x.lower() for x in emails_to_blocklist]
@@ -221,13 +225,15 @@ class Database:
         ## updating from file
         # emails_to_blocklist = pd.read_csv('/Users/albertoruizcajiga/Library/CloudStorage/GoogleDrive-beautifulday874@gmail.com/My Drive/Information_Technology/blacklist_emails.txt', header=None)
         # emails_to_blocklist = {'email':emails_to_blocklist[0].to_list()}
-        
+
         emails_to_blocklist = pd.DataFrame(emails_to_blocklist)
 
         new_block_list = pd.concat([blocked_rows,emails_to_blocklist])
         new_block_list = new_block_list.drop_duplicates(subset='email')
 
-        new_block_list.to_csv(const.BLACKLIST_PATH, header=False, index=False, sep='\n')
+        # See comment in UpdateBlockedEmails: sep='\n' is invalid now that
+        # Python's csv module rejects newline as a delimiter.
+        new_block_list.to_csv(const.BLACKLIST_PATH, header=False, index=False)
 
         new_records_df = new_block_list[~new_block_list['email'].isin(blocked_rows['email'])]
         new_records_len = len(new_records_df)
