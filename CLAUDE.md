@@ -64,4 +64,6 @@ All runtime data lives on Google Drive (`BASE_PATH` in `constants.py`). The repo
 
 ### Sub-projects
 
-`modules/sis_international/` and `modules/email_bison_api/` are separate sub-projects with their own `main.py` and `constants.py`. They are imported selectively from the main codebase.
+`modules/email_bison_api/` is a separate sub-project (its own git repo, tracked as a gitlink) with its own `main.py` and `constants.py`, imported selectively from the main codebase (`import modules.email_bison_api.main as bison`).
+
+`modules/sis_international/main.py` was originally a similar separate sub-project, but that repo (`macondo-1/sis_international`) has since been archived and evolved into an unrelated, much larger system elsewhere. It was folded directly into this repo as regular tracked files -- `main.py` (`Project`, `get_working_jsons`, `get_all_projects_mailing_and_recruits_numbers`; powers menu option 20, "Graph all projects"), plus `README.md`/`workflow.drawio`/`files/utilities/base_project_filter.csv` for reference. `modules/sis_international/files/database/` and `files/projects/` are real local project data, gitignored, not tracked.

@@ -18,7 +18,11 @@ test_lists
 modules/constants.py
 modules/email_bison_api/constants.py
 modules/email_bison_api/credentials.py
-modules/sis_international/constants.py
 !modules/email_bison_api/
-!modules/sis_international/
 .env/
+
+# modules/sis_international was folded in directly (no longer a submodule)
+# on 2026-08-11; these are real local project data, never meant to be tracked
+modules/sis_international/files/database/
+modules/sis_international/files/projects/
+modules/sis_international/.env/
