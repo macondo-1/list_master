@@ -10,7 +10,7 @@ A CLI automation tool for email marketing operations at SIS International Resear
 
 ```bash
 # Activate the virtual environment first
-source .env/bin/activate   # or .myenv/bin/activate
+source .venv/bin/activate
 
 # Run the interactive CLI
 python lists.py   # or the root-level entry-point scripts
