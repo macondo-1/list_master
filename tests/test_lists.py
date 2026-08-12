@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import pandas as pd
+import pytest
 
 from modules.lists import list_
 
@@ -103,3 +106,26 @@ def test_clean_blacklisted_removes_matching_emails_and_keeps_others():
     )
     result = list_.CleanBlacklisted(df)
     assert result['email'].tolist() == ['ok@good.com', 'fine@site.com']
+
+
+FIXTURES_DIR = Path(__file__).parent / 'fixtures'
+
+SOURCE_CSVS = ['raw_apollo.csv', 'raw_hunter.csv', 'raw_ru.csv', 'raw_snov.csv']
+
+
+@pytest.mark.parametrize('csv_name', SOURCE_CSVS)
+def test_fix_columns_then_fixrecords_cleans_each_source(csv_name):
+    df = list_.ReadList(FIXTURES_DIR / csv_name)
+
+    df = list_.fix_columns(df)
+    assert df.columns.tolist() == ['first_name', 'email']
+
+    df = list_.FixRecords(df)
+    # Row 1: passes through ("John Smith" -> "John"). Row 2: passes
+    # through. Row 3: dropped, a case-insensitive duplicate of row 2's
+    # email. Row 4: passes through, non-ascii name -> "Colleague". Row 5:
+    # dropped, malformed email. Row 6: dropped, missing email.
+    assert df['first_name'].tolist() == ['John', 'Mary', 'Colleague']
+    assert df['email'].tolist() == [
+        'john@example.com', 'mary@example.com', 'jose@example.com',
+    ]
