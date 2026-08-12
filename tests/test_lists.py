@@ -94,3 +94,12 @@ def test_fix_columns_returns_none_when_no_mapper_matches_and_choice_invalid(monk
     monkeypatch.setattr('builtins.input', lambda *args, **kwargs: 'nope')
     result = list_.fix_columns(df)
     assert result is None
+
+
+def test_clean_blacklisted_removes_matching_emails_and_keeps_others():
+    df = _records(
+        ['A', 'B', 'C', 'D'],
+        ['user@blocked.com', 'ok@good.com', 'banned@example.com', 'fine@site.com'],
+    )
+    result = list_.CleanBlacklisted(df)
+    assert result['email'].tolist() == ['ok@good.com', 'fine@site.com']
