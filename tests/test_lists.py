@@ -5,8 +5,14 @@ import pytest
 
 from modules.lists import list_
 
+FIXTURES_DIR = Path(__file__).parent / 'fixtures'
+
+SOURCE_CSVS = ['raw_apollo.csv', 'raw_hunter.csv', 'raw_ru.csv', 'raw_snov.csv']
+
 
 def _records(first_names, emails):
+    # dtype=object avoids an all-None/NaN column inferring float64 (breaks
+    # .str accessors below); matches ReadList's own dtype=object.
     return pd.DataFrame({'first_name': first_names, 'email': emails}, dtype=object)
 
 
@@ -99,6 +105,16 @@ def test_fix_columns_returns_none_when_no_mapper_matches_and_choice_invalid(monk
     assert result is None
 
 
+def test_fix_columns_returns_none_when_matched_mapper_is_missing_a_column():
+    # A single-column df is a subset of apollo_test's {'First Name', 'Email'}
+    # keys, so the isin().all() check matches it — but the mapper's rename
+    # target list still expects both columns, so selecting by the mapper's
+    # values raises and the function's bare except returns None.
+    df = pd.DataFrame({'First Name': ['John']})
+    result = list_.fix_columns(df)
+    assert result is None
+
+
 def test_clean_blacklisted_removes_matching_emails_and_keeps_others():
     df = _records(
         ['A', 'B', 'C', 'D'],
@@ -108,9 +124,16 @@ def test_clean_blacklisted_removes_matching_emails_and_keeps_others():
     assert result['email'].tolist() == ['ok@good.com', 'fine@site.com']
 
 
-FIXTURES_DIR = Path(__file__).parent / 'fixtures'
-
-SOURCE_CSVS = ['raw_apollo.csv', 'raw_hunter.csv', 'raw_ru.csv', 'raw_snov.csv']
+def test_clean_blacklisted_is_case_sensitive_on_email_values():
+    # Documents current behavior: blacklist file lines are lowercased before
+    # building the regex, but df.email is matched as-is (no case=False), so
+    # an uppercase email matching a lowercase blacklist entry is NOT caught.
+    # In production this is masked because FixRecords always lowercases
+    # email before CleanBlacklisted runs — but CleanBlacklisted itself does
+    # not enforce that.
+    df = _records(['A'], ['USER@BLOCKED.COM'])
+    result = list_.CleanBlacklisted(df)
+    assert result['email'].tolist() == ['USER@BLOCKED.COM']
 
 
 @pytest.mark.parametrize('csv_name', SOURCE_CSVS)
