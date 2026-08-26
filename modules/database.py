@@ -7,6 +7,7 @@ import sqlite3
 import csv
 import numpy as np
 import modules.constants as const
+from modules.utilities import validate_project_id
 
 class Database:
     """
@@ -135,7 +136,7 @@ class Database:
         """
         Creates the table on the database for the given project
         """
-        project_id = file_path.split('_',1)[0]
+        project_id = validate_project_id(file_path.split('_',1)[0])
         new_db_df = pd.DataFrame(columns=const.DB_COLUMNS)
         new_db_df = new_db_df.rename_axis('ID')
         new_db_df.to_sql(project_id, con=conn, if_exists='replace')
@@ -144,7 +145,7 @@ class Database:
         """
         Connects to a project table and return it as a pandas dataframe
         """
-        project_id = file_path.split('_',1)[0]
+        project_id = validate_project_id(file_path.split('_',1)[0])
         sql_query = "SELECT * FROM '{0}'".format(project_id)
         project_db_df = pd.read_sql(sql_query, con=conn, index_col='ID') #, index_col='ID'
         return project_db_df
@@ -155,7 +156,7 @@ class Database:
         """
         df_to_db = pd.concat([project_db_df,new_list_df])
         df_to_db.drop_duplicates(subset='email')
-        project_id = file_path.split('_',1)[0]
+        project_id = validate_project_id(file_path.split('_',1)[0])
         df_to_db.to_sql(project_id, con=conn, if_exists='replace')
         return df_to_db
 
@@ -163,7 +164,7 @@ class Database:
         """
         Get a given amount of records from the projects database
         """
-        project_id = file_path.split('_',1)[0]
+        project_id = validate_project_id(file_path.split('_',1)[0])
         out_df = project_db_df[(project_db_df['project' == project_id] & project_db_df['last_contact_date'].isna())]
         out_df = project_db_df[:max_size_list]
         return out_df
