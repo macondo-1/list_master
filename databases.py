@@ -2,6 +2,7 @@ import modules.constants as const
 import sqlite3
 import pandas as pd
 from datetime import date
+from modules.utilities import validate_project_id
 
 class SM_Database():
     """
@@ -75,7 +76,7 @@ class ProjectDatabase():
         Creates a database for the project containing one table for list makers, one for survey monkey database and
         the last one for qualtrics database
         """
-        project_id = file_name.split('_')[0]
+        project_id = validate_project_id(file_name.split('_')[0])
         database_file_name = '{0}.db'.format(project_id)
         conn = sqlite3.connect(database_file_name)
 
@@ -89,7 +90,7 @@ class ProjectDatabase():
         """
         connects to the projects database, gets all the emails in there to dedupe the new list and then appends it to the database
         """
-        project_id = file_name.split('_')[0]
+        project_id = validate_project_id(file_name.split('_')[0])
         database_file_name = '{0}.db'.format(project_id)
         conn = sqlite3.connect(database_file_name)
 
@@ -105,6 +106,7 @@ class ProjectDatabase():
         excracts a list and marks its last_contact_date column with a timestamp
         """
 
+        project_id = validate_project_id(project_id)
         today = date.today()
         today = today.strftime("%Y%m%d")
 
@@ -120,6 +122,7 @@ class ProjectDatabase():
 
 
     def get_projects_db_stats(self, project_id):
+        project_id = validate_project_id(project_id)
         database_file_name = '{0}.db'.format(project_id)
         conn = sqlite3.connect(database_file_name)
         list_makers_df =  pd.read_sql('SELECT email FROM "{0}_list_makers" WHERE last_contact_date IS NULL'.format(project_id), conn)
@@ -132,7 +135,7 @@ class ProjectDatabase():
 
 
     def update_validations_status(self, file_name):
-        project_id = file_name.split('_')[0]
+        project_id = validate_project_id(file_name.split('_')[0])
         database_file_name = '{0}.db'.format(project_id)
         conn = sqlite3.connect(database_file_name)
         database_df = pd.read_sql('SELECT * FROM "{0}_list_makers" '.format(project_id), conn)

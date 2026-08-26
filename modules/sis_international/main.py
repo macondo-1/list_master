@@ -147,17 +147,21 @@ class Project:
         # Convert sets back to lists
         return {key: list(values) for key, values in column_dict.items()}
 
-    def retrieve_records_from_db(self,full_query):
+    def retrieve_records_from_db(self, full_query, params=()):
         """
         Reads the filters for the project
         parses the database
         saves matching records as a csv in project's folder
         returns the matching records
+
+        full_query must be built by build_sqlite_query(), which returns a
+        parameterized query -- params holds the filter *values* (never
+        interpolated into the SQL text) via sqlite3's own ? placeholders.
         """
         conn = sqlite3.connect(self.db_file_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute(full_query)
+        cursor.execute(full_query, params)
         results = cursor.fetchall()
         conn.close()
 
@@ -170,18 +174,55 @@ class Project:
         return results
 
     def build_sqlite_query(self, filter_dict, table_name='survey_monkey'):
-        base_query = "SELECT * FROM {}".format(table_name)
+        """
+        Builds a parameterized SQL query from filter_dict (as produced by
+        load_project_filter(), i.e. attacker-influenceable CSV content).
+
+        Returns (query, params): query uses ? placeholders for every filter
+        *value*; params is the matching tuple to pass into
+        retrieve_records_from_db(). Column names and table_name can't be
+        parameterized as placeholders (SQLite doesn't support that), so
+        they're validated against the table's real schema via
+        PRAGMA table_info instead -- an unrecognized name raises rather
+        than being spliced into the query text. Comparisons are
+        case-insensitive to match SQL identifier resolution.
+        """
+        conn = sqlite3.connect(self.db_file_path)
+        try:
+            cursor = conn.cursor()
+            known_tables = {
+                row[0].lower(): row[0] for row in cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            if table_name.lower() not in known_tables:
+                raise ValueError(f"Unknown table: {table_name!r}")
+            table_name = known_tables[table_name.lower()]
+
+            known_columns = {
+                row[1].lower(): row[1]  # PRAGMA table_info: (cid, name, type, notnull, dflt_value, pk)
+                for row in cursor.execute(f"PRAGMA table_info({table_name})")
+            }
+        finally:
+            conn.close()
+
+        base_query = f"SELECT * FROM {table_name}"
         conditions = []
+        params = []
 
         for field, values in filter_dict.items():
-            
             if values == [None]:
                 continue
+
+            if field.lower() not in known_columns:
+                raise ValueError(f"Unknown column: {field!r}")
+            field = known_columns[field.lower()]
 
             field_conditions = []
             for value in values:
                 value = value.strip().lower()
-                field_conditions.append(f"LOWER({field}) LIKE '%{value}%'")
+                field_conditions.append(f"LOWER({field}) LIKE ?")
+                params.append(f"%{value}%")
             if field_conditions:
                 conditions.append(f"({' OR '.join(field_conditions)})")
 
@@ -190,7 +231,7 @@ class Project:
         else:
             full_query = base_query
 
-        return full_query
+        return full_query, tuple(params)
 
     def save_sql_results_to_csv(self, results):
         """
