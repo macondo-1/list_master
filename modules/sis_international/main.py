@@ -86,8 +86,6 @@ class Project:
         directory_name = '{0}_{1}'.format(self.number, self.name)
         project_path = self.projects_base_path.joinpath(directory_name)
         project_path.mkdir(parents=True, exist_ok=True)
-        # if not project_path.is_dir():
-        #     project_path.mkdir()
 
         file_name = '{}.json'.format(directory_name)
         json_path = project_path.joinpath(file_name)
