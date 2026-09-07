@@ -85,8 +85,9 @@ class Project:
         """
         directory_name = '{0}_{1}'.format(self.number, self.name)
         project_path = self.projects_base_path.joinpath(directory_name)
-        if not project_path.is_dir():
-            project_path.mkdir()
+        project_path.mkdir(parents=True, exist_ok=True)
+        # if not project_path.is_dir():
+        #     project_path.mkdir()
 
         file_name = '{}.json'.format(directory_name)
         json_path = project_path.joinpath(file_name)
@@ -248,6 +249,7 @@ class Project:
     def save_mail_message(self,mail_message):
         directory_name = '{0}_{1}'.format(self.number, self.name)
         project_path = self.projects_base_path.joinpath(directory_name)
+        project_path.mkdir(parents=True, exist_ok=True)
         filename = project_path.joinpath('{}.txt'.format(directory_name))
         with open(filename,'w') as file:
             file.write(mail_message)
