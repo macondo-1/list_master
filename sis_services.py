@@ -1,5 +1,3 @@
-#!/Users/home/Documents/sis_international/python/list_master/.venv/bin/python3
-
 import os
 import sys
 import glob

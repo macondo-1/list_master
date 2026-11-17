@@ -26,3 +26,4 @@ modules/email_bison_api/credentials.py
 modules/sis_international/files/database/
 modules/sis_international/files/projects/
 modules/sis_international/.env/
+*.egg-info/

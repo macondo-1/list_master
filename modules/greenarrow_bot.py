@@ -12,7 +12,7 @@ import datetime
 import glob
 from pathlib import Path
 
-from lists import list_
+from modules.lists import list_
 
 today = date.today()
 datetime_obj = datetime.datetime.combine(today, datetime.time())
